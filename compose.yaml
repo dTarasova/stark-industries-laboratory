@@ -1,0 +1,15 @@
+services:
+  laboratory:
+    build: .
+    ports:
+      - "127.0.0.1:${HOST_PORT:-3000}:3000"
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Укажите ADMIN_PASSWORD в .env}
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "3000"
+    volumes:
+      - mission-data:/app/data
+    restart: unless-stopped
+    init: true
+volumes:
+  mission-data:
