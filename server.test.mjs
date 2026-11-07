@@ -16,8 +16,16 @@ test('Общая миссия, защита и сохранение после �
  assert.equal((await post('mission',{stage:3,version:0},cookie)).status,409);
  for(let i=0;i<2;i++)assert.equal((await(await fetch(url+'/api/mission')).json()).stage,2);
  assert.equal((await post('mission',{stage:99,version:1},cookie)).status,400);
+ assert.equal((await post('badge',{badge:1,active:true,version:1})).status,401);
+ assert.equal((await post('badge',{badge:4,active:true,version:1},cookie)).status,400);
+ assert.deepEqual(await (await post('badge',{badge:1,active:true,version:1},cookie)).json(), {stage:2,version:2,badges:2});
+ assert.equal((await post('badge',{badge:0,active:true,version:1},cookie)).status,409);
+ assert.deepEqual(await (await post('badge',{badge:3,active:true,version:2},cookie)).json(), {stage:2,version:3,badges:10});
+ assert.deepEqual(await (await post('badge',{badge:1,active:false,version:3},cookie)).json(), {stage:2,version:4,badges:8});
  await new Promise(r=>server.close(r));server=laboratory(options);await new Promise(r=>server.listen(0,'127.0.0.1',r));url=`http://127.0.0.1:${server.address().port}`;
- assert.equal((await(await fetch(url+'/api/mission')).json()).stage,2);
- assert.equal((await post('mission',{stage:3,version:1},cookie)).status,401);
- }finally{await new Promise(r=>server.close(r));rmSync(dir,{recursive:true});}
+ const restored=await (await fetch(url+'/api/mission')).json();
+ assert.equal(restored.stage,2);
+ assert.equal(restored.badges,8);
+ assert.equal((await post('mission',{stage:3,version:4},cookie)).status,401);
+ }finally{if(server.listening) await new Promise(r=>server.close(r));rmSync(dir,{recursive:true});}
 });

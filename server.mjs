@@ -6,9 +6,12 @@ import {resolve, extname} from 'node:path';
 export const stages = ['Знакомство с лабораторией','EDITH — текущая разработка','Новый элемент','Защита Земли','Атака Альтрона','Временные линии','Восстановление JARVIS','Clean Slate','Победа'];
 export function laboratory({database='data/mission.sqlite',password,secure=false}) {
  if (!password || password.length < 16) throw Error('Задайте ADMIN_PASSWORD длиной от 16 символов');
- const db=new DatabaseSync(database); db.exec('CREATE TABLE IF NOT EXISTS mission (id INTEGER PRIMARY KEY CHECK(id=1), stage INTEGER NOT NULL, version INTEGER NOT NULL); INSERT OR IGNORE INTO mission VALUES(1,0,0)');
+ const db=new DatabaseSync(database); db.exec('CREATE TABLE IF NOT EXISTS mission (id INTEGER PRIMARY KEY CHECK(id=1), stage INTEGER NOT NULL, version INTEGER NOT NULL); INSERT OR IGNORE INTO mission (id,stage,version) VALUES(1,0,0)');
+ if (!db.prepare('PRAGMA table_info(mission)').all().some(column => column.name === 'badges')) {
+  db.exec('ALTER TABLE mission ADD COLUMN badges INTEGER NOT NULL DEFAULT 0');
+ }
  const sessions=new Map(); const attempts=new Map();
- const state=()=>db.prepare('SELECT stage,version FROM mission WHERE id=1').get();
+ const state=()=>db.prepare('SELECT stage,version,badges FROM mission WHERE id=1').get();
  const hash=s=>createHash('sha256').update(s).digest();
  const server=createServer(async(req,res)=>{
   const send=(status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
@@ -31,13 +34,23 @@ export function laboratory({database='data/mission.sqlite',password,secure=false
     const token=req.headers.cookie?.split('; ').find(x=>x.startsWith('session='))?.slice(8);
     if(!token || !(sessions.get(token)>Date.now())) return send(401,{error:'Войдите в пульт'});
     if(path==='/api/logout'){sessions.delete(token);res.setHeader('Set-Cookie','session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(200,{ok:true});}
+    if (path === '/api/badge') {
+     const {badge, active, version} = body ?? {};
+     if (!Number.isInteger(badge) || badge < 0 || badge > 3 || typeof active !== 'boolean' || !Number.isInteger(version)) {
+      return send(400, {error:'Некорректный бейдж'});
+     }
+     const mask = 1 << badge;
+     const result = db.prepare('UPDATE mission SET badges = (badges & ?) | ?, version = version + 1 WHERE id = 1 AND version = ?')
+      .run(~mask, active ? mask : 0, version);
+     return send(result.changes ? 200 : 409, result.changes ? state() : {error:'Миссия уже изменилась. Проверьте статус бейджа и повторите.'});
+    }
     if(path!=='/api/mission') return send(404,{error:'Не найдено'});
     if(!Number.isInteger(body.stage)||body.stage<0||body.stage>=stages.length||!Number.isInteger(body.version)) return send(400,{error:'Некорректный этап'});
     const result=db.prepare('UPDATE mission SET stage=?, version=version+1 WHERE id=1 AND version=?').run(body.stage,body.version);
     return send(result.changes?200:409,result.changes?state():{error:'Этап уже изменился. Обновите данные и подтвердите снова.'});
    }
    if(req.method!=='GET') return send(405,{});
-   const root=resolve('dist');const file=['/', '/control', '/archive'].includes(path)?resolve(root,'index.html'):resolve(root,'.'+path);
+   const root=resolve('dist');const file=['/', '/control', '/archive', '/development'].includes(path)?resolve(root,'index.html'):resolve(root,'.'+path);
    if(!file.startsWith(root+'/')&&!file.startsWith(root+'\\')) return send(404,{});
    try {res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css'})[extname(file)]||'application/octet-stream');res.end(readFileSync(file));}catch{return send(404,{error:'Не найдено'});}
   } catch {send(500,{error:'Сервис временно недоступен'});}
