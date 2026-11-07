@@ -21,3 +21,34 @@
   background: radial-gradient(circle, #fff 22%, #a8f6ff 25%, #4ca6dd 49%, #19485e 52%);
   box-shadow: 0 0 16px #4ca6dd;
 }
+
+header a {
+  color: #a8f6ff;
+  letter-spacing: normal;
+}
+
+.archive-card {
+  margin: 16px 0;
+  border-left: 3px solid #80d8e4;
+  background: #17262e;
+  overflow-wrap: anywhere;
+}
+
+.archive-card summary {
+  padding: 16px;
+  cursor: pointer;
+}
+
+.archive-status {
+  display: block;
+  margin: 8px 0 0 20px;
+  color: #a8f6ff;
+}
+
+.archive-dossier {
+  padding: 0 16px 8px;
+}
+
+.archive-dossier h2 {
+  font-size: 1rem;
+}
