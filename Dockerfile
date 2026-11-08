@@ -4,8 +4,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
+COPY prototype ./prototype
 RUN npm run build
-COPY server.mjs server.test.mjs ./
+COPY server.mjs server.test.mjs element.test.mjs ./
 RUN npm test
 
 FROM node:24-bookworm-slim AS runtime

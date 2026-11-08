@@ -50,7 +50,10 @@ export function laboratory({database='data/mission.sqlite',password,secure=false
     return send(result.changes?200:409,result.changes?state():{error:'Этап уже изменился. Обновите данные и подтвердите снова.'});
    }
    if(req.method!=='GET') return send(405,{});
-   const root=resolve('dist');const file=['/', '/control', '/archive', '/development'].includes(path)?resolve(root,'index.html'):resolve(root,'.'+path);
+   const root=resolve('dist');
+   const page=['/', '/control', '/archive', '/development'].includes(path)?'/index.html':
+     ['/prototype', '/prototype/'].includes(path)?'/prototype/index.html':path;
+   const file=resolve(root,'.'+page);
    if(!file.startsWith(root+'/')&&!file.startsWith(root+'\\')) return send(404,{});
    try {res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css'})[extname(file)]||'application/octet-stream');res.end(readFileSync(file));}catch{return send(404,{error:'Не найдено'});}
   } catch {send(500,{error:'Сервис временно недоступен'});}
