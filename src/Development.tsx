@@ -1,3 +1,4 @@
+import {Dummy} from './Dummy';
 import {lazy, Suspense, useState, type FormEvent} from 'react';
 import type {Mission} from './App';
 import './development.css';
@@ -12,8 +13,9 @@ function focusExperiment(container: HTMLDivElement | null) {
   }
 }
 
-export function Development({unlocked, onUnlock}: {
+export function Development({unlocked, onUnlock, mission}: {
   unlocked: boolean;
+  mission: number;
   onUnlock: (mission: Mission) => void;
 }) {
   const [code, setCode] = useState('');
@@ -71,10 +73,11 @@ export function Development({unlocked, onUnlock}: {
             {error && <p id="edith-error" role="alert">{error}</p>}
           </form>
         )}
+        {!unlocked && <Dummy />}
       </Entry>
       {unlocked && (
-        <Suspense fallback={<p role="status">Загружаем рабочее пространство…</p>}>
-          <div className="element-experiment" ref={focusExperiment}><Experiment /></div>
+        <Suspense fallback={<><p role="status">Загружаем рабочее пространство…</p><Dummy /></>}>
+          <div className="element-experiment" ref={focusExperiment}><Experiment mission={mission} /></div>
         </Suspense>
       )}
     </>

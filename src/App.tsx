@@ -3,14 +3,16 @@ import './style.css';
 import {FounderArchive} from './FounderArchive';
 import {LaboratoryOverview, badgeNames} from './LaboratoryOverview';
 import {UltronTerminal} from './UltronTerminal';
+import {Dummy} from './Dummy';
 import {Development} from './Development';
-export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number};
+export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number;missionRun:number;recoveryRequested:number;recoveryHints:string[]};
 type MissionSnapshot = Mission & {receivedAt:number; takeoverDeadline:number|null};
 export function App({experiment, allowOfflineExperiment = false}: {
  experiment?: ReactNode;
  allowOfflineExperiment?: boolean;
 } = {}){
  const [mission,setMission]=useState<MissionSnapshot>();const [error,setError]=useState('');const [online,setOnline]=useState(false);const [password,setPassword]=useState('');const [auth,setAuth]=useState(false);const [selected,setSelected]=useState(0);const [pending,setPending]=useState<{stage:number;version:number}>();const [busy,setBusy]=useState(false);
+ const [hintDraft, setHintDraft] = useState<{stage:number; text:string}>();
  const [clock, setClock] = useState(0);
  const [checkedConnection, setCheckedConnection] = useState(false);
  const [command, setCommand] = useState<{path:string;label:string;version:number}>();
@@ -60,6 +62,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
    try {acceptMission(await post(path, {version}));}
    finally {await refresh();}
  }
+ const recovery = mission?.stage === 5 || mission?.stage === 6;
  const missionSummary = (
    <section>
      <p role="status">{online ? 'Связь с лабораторией установлена' : 'Нет связи с лабораторией'}</p>
@@ -75,14 +78,13 @@ export function App({experiment, allowOfflineExperiment = false}: {
  );
  if (!control) {
    const captured = mission?.stage === 4;
-   const recovery = mission?.stage === 5 || mission?.stage === 6;
    const showExperiment = Boolean(mission) || (allowOfflineExperiment && checkedConnection);
    const showOverview = mission && (captured || (!experiment && !isArchive && !isDevelopment));
    const elapsed = (mission?.takeoverDuration ?? 0) - Math.max(0, remaining);
    return (
      <>
        {showExperiment && experiment && <div hidden={captured || recovery}>{experiment}</div>}
-       {!mission && !(showExperiment && experiment) && <main>{missionSummary}</main>}
+       {!mission && !(showExperiment && experiment) && <main>{missionSummary}<Dummy /></main>}
        {showOverview && !recovery && (
          <div className="takeover-backdrop" data-captured={captured && elapsed >= 36000} inert={captured}>
            <LaboratoryOverview stage={mission.stage} elementDiscovered={mission.elementDiscovered === true} badges={mission.badges}
@@ -95,10 +97,19 @@ export function App({experiment, allowOfflineExperiment = false}: {
            <header><span>SURKOV INDUSTRIES</span><small>ВНЕШНЕЕ УПРАВЛЕНИЕ</small></header>
            <h1>Резервный канал</h1><p className="recovery-status" role="status">Локальный канал открыт. Восстановление доступно.</p>
            {missionSummary}
+           <Dummy>
+             <button type="button" disabled={busy || !online || Boolean(mission.recoveryRequested)}
+               onClick={() => void action(() => runCommand('recovery-request', mission.version))}>
+               {mission.recoveryRequested ? 'Запрос передан ведущей' : 'Дамми, помоги'}
+             </button>
+             <div role="log" aria-label="Подсказки Дамми">
+               {mission.recoveryHints.map((hint, index) => <p key={index}>{hint}</p>)}
+             </div>
+           </Dummy>
          </main>
        )}
        {mission && !captured && !recovery && isArchive && <FounderArchive />}
-       {mission && !captured && !recovery && isDevelopment && <Development unlocked={mission.edithUnlocked} onUnlock={acceptMission} />}
+       {mission && !captured && !recovery && isDevelopment && <Development mission={mission.missionRun} unlocked={mission.edithUnlocked} onUnlock={acceptMission} />}
      </>
    );
  }
@@ -109,6 +120,35 @@ export function App({experiment, allowOfflineExperiment = false}: {
      ? {path:'open-recovery', label:'Открыть резервный канал', version:mission.version}
      : undefined;
 
+ const hint = mission && hintDraft?.stage === mission.stage ? hintDraft.text : '';
+ const recoveryControls = auth && mission && recovery && (
+   <form onSubmit={event => {
+     event.preventDefault();
+     void action(async () => {
+       try {
+         acceptMission(await post('recovery-hint', {hint, version: mission.version}));
+         setHintDraft(undefined);
+       } finally {
+         await refresh();
+       }
+     });
+   }}>
+     <h2>Помощь Дамми</h2>
+     <p role="status">{mission.recoveryRequested ? 'Участник просит помощи' : 'Новых запросов нет'}</p>
+     <label>Подсказка участнику
+       <textarea value={hint} maxLength={500} required disabled={busy}
+         onChange={event => setHintDraft({stage:mission.stage, text:event.target.value})} />
+     </label>
+     <button disabled={busy || !online || !hint.trim()}>Отправить от Дамми</button>
+   </form>
+ );
+ const dummyReset = auth && mission?.stage === 0 && (
+   <button type="button" disabled={busy || !online} onClick={() => {
+     if (window.confirm('Начать новую выдачу предметов Дамми для всех устройств?')) {
+       void action(() => runCommand('reset-dummy', mission.version));
+     }
+   }}>Сбросить выдачу Дамми…</button>
+ );
  const storyControls = auth && (availableCommand || playing) && (
    <section>
      <h2>Планетарная защита</h2>
@@ -126,7 +166,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
      )}
    </section>
  );
- return <main><header><span>SURKOV INDUSTRIES</span><small>ЛАБОРАТОРИЯ · 28</small></header><h1>Пульт ведущей</h1>{missionSummary}{storyControls}{control&&!auth&&<form onSubmit={e=>{e.preventDefault();void action(async()=>{await post('login',{password});setPassword('');setAuth(true);});}}><label>Пароль ведущей<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required/></label><button disabled={busy}>Войти</button></form>}{control&&auth&&mission&&<section><label>Новый этап<select value={selected} onChange={e=>setSelected(Number(e.target.value))}>{mission.stages.map((s,i)=><option key={s} value={i}>{s}</option>)}</select></label><button disabled={busy||!online} onClick={()=>setPending({stage:selected,version:mission.version})}>Сменить этап…</button>{pending&&<div role="group" aria-label="Подтверждение смены этапа"><p>Переключить миссию на «{mission.stages[pending.stage]}» для всех устройств?</p><button disabled={busy||!online} onClick={()=>void action(async()=>{try{await post('mission',pending);}finally{setPending(undefined);await refresh();}})}>Подтвердить</button><button disabled={busy} onClick={()=>setPending(undefined)}>Отмена</button></div>}<button disabled={busy} onClick={()=>void action(async()=>{await post('logout',{});setAuth(false);setPending(undefined);setCommand(undefined);})}>Выйти</button></section>}{auth && mission && (
+ return <main><header><span>SURKOV INDUSTRIES</span><small>ЛАБОРАТОРИЯ · 28</small></header><h1>Пульт ведущей</h1>{missionSummary}{storyControls}{recoveryControls}{dummyReset}{control&&!auth&&<form onSubmit={e=>{e.preventDefault();void action(async()=>{await post('login',{password});setPassword('');setAuth(true);});}}><label>Пароль ведущей<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required/></label><button disabled={busy}>Войти</button></form>}{control&&auth&&mission&&<section><label>Новый этап<select value={selected} onChange={e=>setSelected(Number(e.target.value))}>{mission.stages.map((s,i)=><option key={s} value={i}>{s}</option>)}</select></label><button disabled={busy||!online} onClick={()=>setPending({stage:selected,version:mission.version})}>Сменить этап…</button>{pending&&<div role="group" aria-label="Подтверждение смены этапа"><p>Переключить миссию на «{mission.stages[pending.stage]}» для всех устройств?</p><button disabled={busy||!online} onClick={()=>void action(async()=>{try{await post('mission',pending);}finally{setPending(undefined);await refresh();}})}>Подтвердить</button><button disabled={busy} onClick={()=>setPending(undefined)}>Отмена</button></div>}<button disabled={busy} onClick={()=>void action(async()=>{await post('logout',{});setAuth(false);setPending(undefined);setCommand(undefined);setHintDraft(undefined);})}>Выйти</button></section>}{auth && mission && (
   <section>
     <h2>Бейджи основателя</h2>
     {badgeNames.map((name, badge) => {

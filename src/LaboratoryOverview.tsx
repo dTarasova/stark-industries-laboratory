@@ -1,14 +1,10 @@
+import {Dummy} from './Dummy';
 import {useEffect, useRef, useState, type ReactNode} from 'react';
 import {LaboratorySystems} from './LaboratorySystems';
 import {ProjectIllustration} from './ProjectIllustration';
 
 export const badgeNames = ['GENIUS / Гений', 'BILLIONAIRE / Биллионер', 'PLAYBOY / Плейбой', 'PHILANTHROPIST / Филантроп'];
 
-const replies = [
-  'Дамми поднимает манипулятор в знак приветствия.',
-  'Дамми поправляет инструменты и поворачивается к вам.',
-  'Дамми замирает у огнетушителя в ожидании команды.',
-];
 const greeting = 'Добро пожаловать, мистер Сурков. Сканирование дугового реактора завершено. Лаборатория открыта.';
 
 export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured, edithUnlocked}: {
@@ -26,9 +22,6 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
   const historyPanel = useRef<HTMLDetailsElement>(null);
   const [unread, setUnread] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const [reply, setReply] = useState(-1);
-  const [reacting, setReacting] = useState(false);
-
   function announce(text: string) {
     setMessage(text);
     if (!historyPanel.current?.open) setUnread(count => count + 1);
@@ -49,12 +42,6 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
     const timer = window.setTimeout(() => setMessage(''), 6500);
     return () => window.clearTimeout(timer);
   }, [message, history]);
-
-  useEffect(() => {
-    if (!reacting) return;
-    const timer = window.setTimeout(() => setReacting(false), 850);
-    return () => window.clearTimeout(timer);
-  }, [reacting]);
 
   useEffect(() => {
     if (scan === 'done') heading.current?.focus();
@@ -96,6 +83,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
         </div>
         <div className="reactor-visual" aria-hidden="true" data-upgraded={elementDiscovered} />
       </div>
+      {scan !== 'done' && <Dummy />}
       {scan === 'done' && (
         <div className="lab-workspace">
           <LaboratorySystems stage={stage} edithUnlocked={edithUnlocked} elementDiscovered={elementDiscovered} onDiagnosis={announce}/>
@@ -108,13 +96,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
               <li><ProjectIllustration project="algorithms" /><strong>Алгоритмическая школа</strong><p>4 из 13 стажёров завершили первый раунд и повысили рейтинг на Codeforces.</p></li>
             </ul>
           </section>
-          <aside className="dum-e" data-reacting={reacting}><h2>DUM-E</h2><svg className="robot-arm" viewBox="0 0 240 180" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="3"><path d="M45 158H190M65 155L80 136H155L175 155Z"/><circle cx="118" cy="127" r="14"/><path d="M107 118L75 66L89 57L129 115M82 56L147 30L155 45L93 73"/><circle cx="83" cy="63" r="12"/><circle cx="150" cy="37" r="10"/><path d="M157 33L184 53L178 64L151 46M182 56L202 52L216 66M180 61L189 81L208 83"/></g></svg>
-            <button type="button" disabled={reacting} onClick={() => {
-              setReply(index => (index + 1) % replies.length);
-              setReacting(true);
-            }}>Дамми, ты здесь?</button>
-            <p role="status">{reply >= 0 && replies[reply]}</p>
-          </aside>
+          {!captured && <Dummy />}
         </div>
       )}
     </main>

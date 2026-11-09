@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import {Dummy} from '../Dummy';
+import {DummyItems, resetDummyItems} from './DummyItems';
 import { createScene } from './scene';
 import {
   buildings, createElement, freshAttempt, matchesSelection, toggleBuilding,
@@ -40,10 +42,14 @@ function loadAttempt(): Attempt {
   return freshAttempt(element);
 }
 
+const selectionCondition = 'Сохраните восемь зданий.';
+const projectionCondition = 'Совместите кольцо, ось и ромб.';
+
 const layersInitial = { roads: true, landscape: true };
 const layerLabels = { roads: 'Дороги', landscape: 'Декоративные деревья' };
 
-export function Prototype() {
+export function Prototype({mission = 0}: {mission?: number} = {}) {
+  const [dummyReset, setDummyReset] = useState(0);
   const host = useRef<HTMLDivElement>(null);
   const scene = useRef<ReturnType<typeof createScene> | null>(null);
   const [attempt, setAttempt] = useState(loadAttempt);
@@ -129,6 +135,8 @@ export function Prototype() {
     if (!window.confirm(element
       ? 'Вернуть исходный макет и начать с отбора зданий? Открытый элемент сохранится.'
       : 'Вернуть исходный макет и начать с отбора зданий?')) return;
+    resetDummyItems(mission);
+    setDummyReset(value => value + 1);
     scene.current?.reset();
     setFocusedBuilding(undefined);
     setAttempt(freshAttempt(element));
@@ -153,14 +161,19 @@ export function Prototype() {
       <p className="guide">
         {showingElement ? 'Вращайте открытый элемент мышью.' : selecting
           ? 'Перетаскивайте макет для вращения. Выберите здание на макете или в списке. Повторное нажатие или Esc снимает выбор.'
-          : 'Совместите кольцо, ось и ромб. Колесо мыши меняет масштаб.'}
+          : projectionCondition + ' Колесо мыши меняет масштаб.'}
       </p>
       <div className="viewport" ref={host} aria-label={showingElement ? '3D-модель элемента' : '3D-макет выставки'}>
         {sceneError && <p role="alert">Не удалось запустить 3D. Проверьте, доступен ли WebGL в Chrome.</p>}
       </div>
+      {showingElement ? <Dummy /> : (
+        <DummyItems key={`${mission}-${dummyReset}-${projecting}`} mission={mission}
+          stage={projecting ? 'projection' : 'selection'}
+          condition={projecting ? projectionCondition : selectionCondition} />
+      )}
       {selecting && <>
         <p className="guide">Пара круглых деревьев отмечает прямую связь. При выборе здания на его деревьях появляются номера пар.</p>
-        <p className="guide">Видимых зданий: {selected.length} из {buildings.length}. Сохраните восемь.</p>
+        <p className="guide">Видимых зданий: {selected.length} из {buildings.length}. {selectionCondition}</p>
         <div className="buttons buildings" aria-label="Здания в отборе">
           {buildings.map(({ id }) => <button key={id} type="button"
             aria-label={`Здание ${id} · ${selected.includes(id) ? 'видно' : 'скрыто'}`}

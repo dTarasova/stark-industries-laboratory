@@ -21,11 +21,18 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
  if (!columns.some(column => column.name === 'edithUnlocked')) {
   db.exec('ALTER TABLE mission ADD COLUMN edithUnlocked INTEGER NOT NULL DEFAULT 0');
  }
+ for (const [name, type] of [
+  ['missionRun', 'INTEGER NOT NULL DEFAULT 0'],
+  ['recoveryRequested', 'INTEGER NOT NULL DEFAULT 0'],
+  ['recoveryHints', "TEXT NOT NULL DEFAULT '[]'"],
+ ]) {
+  if (!columns.some(column => column.name === name)) db.exec(`ALTER TABLE mission ADD COLUMN ${name} ${type}`);
+ }
  const sessions=new Map(); const attempts=new Map();
  const state=()=>db.prepare('SELECT stage,version,badges FROM mission WHERE id=1').get();
  const publicMission = () => {
-  const {edithUnlocked, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked FROM mission WHERE id=1').get();
-  return {...mission, edithUnlocked: Boolean(edithUnlocked), stages, takeoverDuration, serverTime: Date.now()};
+  const {edithUnlocked, recoveryHints, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked,missionRun,recoveryRequested,recoveryHints FROM mission WHERE id=1').get();
+  return {...mission, recoveryHints: JSON.parse(recoveryHints), edithUnlocked: Boolean(edithUnlocked), stages, takeoverDuration, serverTime: Date.now()};
  };
  const hash=s=>createHash('sha256').update(s).digest();
  const edithHash = edithCode?.trim() ? hash(edithCode.trim()) : undefined;
@@ -50,6 +57,12 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
      }
      db.prepare('UPDATE mission SET edithUnlocked=1, version=version+1 WHERE id=1 AND edithUnlocked=0').run();
      return send(200, publicMission());
+    }
+    if (path === '/api/recovery-request') {
+     if (!Number.isInteger(body?.version)) return send(400, {error:'Некорректная версия миссии'});
+     const result = db.prepare(`UPDATE mission SET recoveryRequested=1, version=version+1
+      WHERE id=1 AND stage IN (5,6) AND version=? AND recoveryRequested=0`).run(body.version);
+     return send(result.changes ? 200 : 409, result.changes ? publicMission() : {error:'Запрос помощи сейчас недоступен.'});
     }
     if(path==='/api/login') {
      const key=req.socket.remoteAddress; const now=Date.now(); const attempt=attempts.get(key);
@@ -76,6 +89,21 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
         WHERE id=1 AND stage=4 AND (takeoverEndsAt IS NULL OR takeoverEndsAt<=?) AND version=?`).run(Date.now(), body.version);
      return send(result.changes ? 200 : 409, result.changes ? publicMission() : {error:'Команда сейчас недоступна. Проверьте состояние миссии.'});
     }
+    if (path === '/api/reset-dummy') {
+     if (!Number.isInteger(body?.version)) return send(400, {error:'Некорректная версия миссии'});
+     const result = db.prepare(`UPDATE mission SET missionRun=version+1, version=version+1
+      WHERE id=1 AND version=? AND stage=0`).run(body.version);
+     return send(result.changes ? 200 : 409, result.changes ? publicMission() : {error:'Сброс доступен на начальном этапе.'});
+    }
+    if (path === '/api/recovery-hint') {
+     const hint = typeof body?.hint === 'string' ? body.hint.trim() : '';
+     if (!hint || hint.length > 500 || !Number.isInteger(body?.version)) {
+      return send(400, {error:'Введите подсказку длиной до 500 символов.'});
+     }
+     const result = db.prepare(`UPDATE mission SET recoveryHints=json_insert(recoveryHints, '$[#]', ?), recoveryRequested=0, version=version+1
+      WHERE id=1 AND stage IN (5,6) AND version=?`).run(hint, body.version);
+     return send(result.changes ? 200 : 409, result.changes ? publicMission() : {error:'Этап изменился. Проверьте резервный канал.'});
+    }
     if (path === '/api/badge') {
      const {badge, active, version} = body ?? {};
      if (!Number.isInteger(badge) || badge < 0 || badge > 3 || typeof active !== 'boolean' || !Number.isInteger(version)) {
@@ -89,9 +117,11 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
     if(path!=='/api/mission') return send(404,{error:'Не найдено'});
     if(!Number.isInteger(body.stage)||body.stage<0||body.stage>=stages.length||!Number.isInteger(body.version)) return send(400,{error:'Некорректный этап'});
     const result=db.prepare(`UPDATE mission SET
-     defenseAuthorized=CASE WHEN stage=? THEN defenseAuthorized ELSE 0 END,
-     takeoverEndsAt=CASE WHEN stage=? THEN takeoverEndsAt ELSE NULL END,
-     stage=?, version=version+1 WHERE id=1 AND version=?`).run(body.stage,body.stage,body.stage,body.version);
+     defenseAuthorized=CASE WHEN stage=$stage THEN defenseAuthorized ELSE 0 END,
+     takeoverEndsAt=CASE WHEN stage=$stage THEN takeoverEndsAt ELSE NULL END,
+     recoveryRequested=CASE WHEN stage=$stage THEN recoveryRequested ELSE 0 END,
+     recoveryHints=CASE WHEN stage=$stage THEN recoveryHints ELSE '[]' END,
+     stage=$stage, version=version+1 WHERE id=1 AND version=$version`).run({stage:body.stage, version:body.version});
     return send(result.changes?200:409,result.changes?state():{error:'Этап уже изменился. Обновите данные и подтвердите снова.'});
    }
    if(req.method!=='GET') return send(405,{});

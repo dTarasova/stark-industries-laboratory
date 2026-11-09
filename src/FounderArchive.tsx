@@ -1,3 +1,4 @@
+import {Dummy} from './Dummy';
 import {ProjectIllustration} from './ProjectIllustration';
 
 const projects = [
@@ -32,6 +33,7 @@ export function FounderArchive() {
         <a href="/">В лабораторию</a>
       </header>
       <h1>Архив проектов основателя</h1>
+      <Dummy />
       {projects.map(({title, status, description, material, illustration}) => (
         <details className="archive-card" key={title}>
           <summary>
