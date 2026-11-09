@@ -12,6 +12,13 @@ const diagnostics = [
   'Миссия завершена. Лаборатория в режиме ожидания.',
 ];
 
+const systemSymbols = [
+  'M12 3l8 4.5v9L12 21l-8-4.5v-9z M12 8l4 2.2v3.6L12 16l-4-2.2v-3.6z',
+  'M3 12h4l2-5 4 10 2-5h6',
+  'M4 21h16 M9 21v-4l-4-5 4-6 6 2 3 4 M18 12l-3 3m3-3 3 3 M8 17h4',
+  'M5 3h10l4 4v14H5z M15 3v5h4 M8 12h8 M8 16h5',
+];
+
 export function LaboratorySystems({stage, elementDiscovered, onDiagnosis}: {
   stage?: number;
   elementDiscovered: boolean;
@@ -51,8 +58,10 @@ export function LaboratorySystems({stage, elementDiscovered, onDiagnosis}: {
       <ul className="system-nodes">
         {nodes.map(([title, status], index) => (
           <li key={title} data-checking={index === step}>
-            {index === 3 ? <a href="/development" target="_blank" rel="noopener">Текущая разработка <span>(новая вкладка)</span></a> : <strong>{title}</strong>}
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={systemSymbols[index]} /></svg>
+            {index === 3 ? <a href="/development" target="_blank" rel="noopener">{title}</a> : <strong>{title}</strong>}
             <span>{status}</span>
+            {index === 3 && <span>Откроется в новой вкладке</span>}
           </li>
         ))}
       </ul>

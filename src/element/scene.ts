@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
-  avenueX, buildings, crossroadZ, fragments, links, projectionError, targetDirection,
+  fragments, matchesProjection, structureCenter, targetDirection,
   type Attempt, type ElementModel, type ScreenPoint,
 } from './puzzle';
+import { buildings, carousel, factory, fence, links, swings, visibleLinks } from './layout';
 
 const target = new THREE.Vector3(...targetDirection);
 const initialDirection = new THREE.Vector3(-0.4, 0.8, 1).normalize();
@@ -31,7 +32,7 @@ function label(text: string, scale = 0.7) {
   context.fillStyle = '#101e2b';
   context.fillRect(0, 0, 128, 64);
   context.fillStyle = '#e8f8ff';
-  context.font = 'bold 39px sans-serif';
+  context.font = text.length > 2 ? 'bold 27px sans-serif' : 'bold 39px sans-serif';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.fillText(text, 64, 33);
@@ -44,7 +45,7 @@ const roofGeometry = {
   dome: () => new THREE.SphereGeometry(0.63, 20, 12, 0, 2 * Math.PI, 0, Math.PI / 2),
   spire: () => new THREE.ConeGeometry(0.48, 1.05, 6),
   amber: () => new THREE.CylinderGeometry(0.56, 0.62, 0.23, 6),
-  split: () => new THREE.BoxGeometry(0.42, 0.52, 1.06),
+  split: () => new THREE.CylinderGeometry(0.07, 0.13, 0.76, 10),
 };
 const roofColor = { dome: 0x409dff, spire: 0xe1e7ef, amber: 0xffaa39, split: 0xaf82d9 };
 
@@ -52,17 +53,24 @@ function building(site: typeof buildings[number]) {
   const { id, x, z, height, roof } = site;
   const group = new THREE.Group();
   group.position.set(x, 0, z);
-  group.add(box(1.55, height, 1.35, 0x668198, 0, height / 2, 0));
+  const industrial = id === factory;
+  group.add(box(industrial ? 3.1 : 1.5, height, industrial ? 2.1 : 1.25, 0x668198, 0, height / 2, 0));
+  if (industrial) {
+    for (const x of [-1, 0, 1]) group.add(box(0.58, 0.72, 0.08, 0x293e4a, x, 0.5, 1.06));
+    const sign = label('ЗАВОД', 0.64);
+    sign.position.set(0, 0.77, 1.17);
+    group.add(sign);
+  }
   const cap = mesh(roofGeometry[roof](), roofColor[roof], roof === 'split' ? -0.46 : 0,
-    height + (roof === 'dome' ? 0 : 0.18));
+    height + ({ dome: 0, split: 0.36, spire: 0.51, amber: 0.1 }[roof]));
   group.add(cap);
   if (roof === 'split') {
     const second = cap.clone();
     second.position.x = 0.46;
     group.add(second);
   }
-  const badge = label(id, 0.48);
-  badge.position.y = height + 0.99;
+  const badge = label(id, 0.42);
+  badge.position.y = height + 1.32;
   group.add(badge);
   return group;
 }
@@ -119,21 +127,54 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
   const expo = new THREE.Group();
   const result = new THREE.Group();
   scene.add(expo, result);
-  const table = box(16, 0.65, 12, 0x354b59, 0, -0.36, 0);
+  const table = box(28, 0.65, 19, 0x354b59, 0, -0.36, 0);
   const roads = new THREE.Group();
-  roads.add(
-    box(1, 0.025, 12, 0x6c8290, avenueX, 0, 0),
-    box(16, 0.025, 0.8, 0x6c8290, 0, 0, crossroadZ),
-  );
-  for (const [text, x, z] of [['С', 0, -5.65], ['Ю', 0, 5.65], ['З', -7.5, 2], ['В', 7.5, 2]] as const) {
-    const marker = label(text, 0.42);
-    marker.position.set(x, 0.45, z);
-    roads.add(marker);
-  }
+  roads.add(box(1, 0.025, 19, 0x6c8290, 0, 0, 0), box(28, 0.025, 0.8, 0x6c8290, 0, 0, 8.7));
+  const north = label('СЕВЕР', 0.7);
+  north.position.set(0, 0.42, -8.9);
   const landscape = new THREE.Group();
-  for (const [x, z] of [[-7, -2.4], [-4, -5], [3.8, -5], [7, 4.9], [-7, 5.2], [4.5, 5.25]]) {
-    landscape.add(mesh(new THREE.SphereGeometry(0.7, 12, 8), 0x435c58, x, -0.37, z));
-    landscape.add(mesh(new THREE.ConeGeometry(0.3, 0.95, 7), 0x507f69, x, 0.58, z));
+  for (const [x, z] of [[-13,-2], [-7,-7.5], [5,-7.9], [13,2.7], [-13,7], [11,7.2]]) {
+    landscape.add(box(0.16, 0.65, 0.16, 0x725444, x, 0.3, z));
+    landscape.add(mesh(new THREE.ConeGeometry(0.4, 1.1, 7), 0x507f69, x, 0.84, z));
+  }
+
+  const landmarks = new THREE.Group();
+  for (const [start, end] of [[fence.start, fence.gateStart], [fence.gateEnd, fence.end]]) {
+    for (let z = start + 0.12; z < end - 0.06; z += 0.26) {
+      landmarks.add(box(0.11, 0.59, 0.11, 0xc4ac7b, fence.x, 0.29, z));
+    }
+    for (const y of [0.16, 0.46]) {
+      landmarks.add(box(0.11, 0.09, end - start, 0xc4ac7b, fence.x, y, (start + end) / 2));
+    }
+  }
+  for (const z of [fence.gateStart, fence.gateEnd]) {
+    landmarks.add(box(0.24, 0.94, 0.2, 0xf4d39c, fence.x, 0.47, z));
+  }
+  for (const y of [0.09, 1.12]) {
+    landmarks.add(mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.12, 24),
+      0xd0996b, carousel.x, y, carousel.z));
+  }
+  landmarks.add(box(0.13, 1.1, 0.13, 0xf4d39c, carousel.x, 0.57, carousel.z));
+  for (let index = 0; index < 4; index++) {
+    const angle = index * Math.PI / 2;
+    const x = carousel.x + 0.66 * Math.cos(angle);
+    const z = carousel.z + 0.66 * Math.sin(angle);
+    landmarks.add(box(0.07, 1, 0.07, 0xf4d39c, x, 0.62, z));
+    landmarks.add(box(0.26, 0.25, 0.42, 0xb96759, x, 0.54, z));
+  }
+  for (const x of [swings.x - 0.85, swings.x + 0.85]) {
+    for (const side of [-1, 1]) {
+      const leg = box(0.09, 1.56, 0.09, 0xb8d4dc, x, 0.73, swings.z + side * 0.27);
+      leg.rotation.x = -side * 0.34;
+      landmarks.add(leg);
+    }
+  }
+  landmarks.add(box(1.85, 0.1, 0.1, 0xb8d4dc, swings.x, 1.44, swings.z));
+  for (const x of [swings.x - 0.4, swings.x + 0.4]) {
+    landmarks.add(box(0.46, 0.07, 0.3, 0xe5af72, x, 0.47, swings.z));
+    for (const offset of [-0.18, 0.18]) {
+      landmarks.add(box(0.035, 0.96, 0.035, 0xb8d4dc, x + offset, 0.96, swings.z));
+    }
   }
 
   const shells = new Map(buildings.map(site => [site.id as string, building(site)]));
@@ -148,15 +189,20 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
     return { pair, line };
   });
   const pieces = new THREE.Group();
-  const fragmentObjects = fragments.map(({ ring: isRing, position, color, radius }) => {
-    const part = isRing ? ring(radius, color) : new THREE.Mesh(
-      new THREE.IcosahedronGeometry(radius, 0), new THREE.MeshBasicMaterial({ color }),
+  const fragmentObjects = fragments.map(({ center, points }) => {
+    const origin = new THREE.Vector3(...center);
+    const path = new THREE.CurvePath<THREE.Vector3>();
+    const local = points.map(point => new THREE.Vector3(...point).sub(origin));
+    local.slice(1).forEach((point, index) => path.add(new THREE.LineCurve3(local[index], point)));
+    const part = new THREE.Mesh(
+      new THREE.TubeGeometry(path, (points.length - 1) * 4, 0.052, 8),
+      new THREE.MeshBasicMaterial({ color: 0xa5edfa }),
     );
-    part.position.set(...position);
+    part.position.copy(origin);
     pieces.add(part);
     return part;
   });
-  expo.add(table, roads, landscape, pieces, ...shells.values());
+  expo.add(table, roads, landscape, landmarks, north, pieces, ...shells.values());
 
   let currentStage: Attempt['stage'] = 'selection';
   let showingResult = false;
@@ -176,7 +222,7 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
     });
   }
 
-  function update(attempt: Attempt, layers: { roads: boolean; landscape: boolean; wires: boolean }, viewSaved: boolean) {
+  function update(attempt: Attempt, layers: { roads: boolean; landscape: boolean; wires: boolean }, viewSaved: boolean, focusedBuilding?: string) {
     currentStage = attempt.stage;
     const transparent = currentStage !== 'selection';
     const visible = new Set(attempt.selected);
@@ -187,7 +233,7 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
       attemptView = { position: camera.position.clone(), zoom: camera.zoom };
       resetView();
       renderResult(attempt.element!);
-      camera.zoom = 7;
+      camera.zoom = 9;
       camera.updateProjectionMatrix();
     } else if (!showResult && showingResult && attemptView) {
       camera.position.copy(attemptView.position);
@@ -202,14 +248,20 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
     roads.visible = layers.roads && !transparent;
     landscape.visible = layers.landscape && !transparent;
     pieces.visible = transparent;
+    landmarks.visible = !transparent;
+    north.visible = !transparent;
+    const activeLinks = new Set(visibleLinks(visible));
     wires.forEach(({ pair, line }) => {
-      line.visible = layers.wires && !transparent && visible.has(pair[0]) && visible.has(pair[1]);
+      line.visible = layers.wires && !transparent && activeLinks.has(pair);
     });
     for (const [id, shell] of shells) {
       shell.visible = visible.has(id);
       shell.traverse(object => {
         if (object instanceof THREE.Sprite) object.visible = !transparent;
         if (object instanceof THREE.Mesh) {
+          if (object.material instanceof THREE.MeshStandardMaterial) {
+            object.material.emissive.setHex(!transparent && id === focusedBuilding ? 0x20505a : 0x000000);
+          }
           object.material.transparent = transparent;
           object.material.depthWrite = !transparent;
           object.material.opacity = transparent ? 0.2 : 1;
@@ -223,12 +275,13 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
 
   function measure() {
     camera.updateMatrixWorld();
-    const direction = camera.position.clone().sub(controls.target).normalize();
-    const points = fragmentObjects.map(part => {
-      const projected = part.position.clone().project(camera);
-      return [projected.x * (camera.right - camera.left), projected.y * (camera.top - camera.bottom)] as ScreenPoint;
-    });
-    return projectionError(points, direction.dot(target));
+    const project = (point: [number, number, number]): ScreenPoint => {
+      const projected = new THREE.Vector3(...point).project(camera);
+      return [projected.x * (camera.right - camera.left), projected.y * (camera.top - camera.bottom)];
+    };
+    return matchesProjection(fragments.map(({ center, points }) => ({
+      center: project(center), points: points.map(project),
+    })));
   }
 
   function assemble(done: () => void) {
@@ -241,7 +294,7 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
   const resize = new ResizeObserver(() => {
     const { clientWidth: width, clientHeight: height } = host;
     if (!width || !height) return;
-    const halfHeight = Math.max(8, 10 * height / width);
+    const halfHeight = Math.max(10.8, 15.5 * height / width);
     const halfWidth = halfHeight * width / height;
     Object.assign(camera, { left: -halfWidth, right: halfWidth, top: halfHeight, bottom: -halfHeight });
     camera.updateProjectionMatrix();
@@ -276,10 +329,10 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
       const merge = THREE.MathUtils.smoothstep(time - animation.start, 580, 1380);
       const rotation = new THREE.Quaternion().slerp(animation.turn, turn);
       camera.position.copy(animation.from).applyQuaternion(rotation).add(controls.target);
-      const center = new THREE.Vector3(0, 0.25, 0);
+      const center = new THREE.Vector3(...structureCenter);
       fragmentObjects.forEach((part, index) => {
-        part.position.set(...fragments[index].position).lerp(center, merge);
-        if (!fragments[index].ring) part.scale.setScalar(1 - 0.99 * merge);
+        part.position.set(...fragments[index].center).lerp(center, merge);
+        part.scale.setScalar(1 - 0.88 * merge);
       });
       if (merge === 1) {
         const { done } = animation;
@@ -297,9 +350,11 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
     reset() {
       animation = undefined;
       attemptView = undefined;
+      controls.minZoom = 0.65;
+      controls.maxZoom = 2.3;
       controls.enabled = true;
       fragmentObjects.forEach((part, index) => {
-        part.position.set(...fragments[index].position);
+        part.position.set(...fragments[index].center);
         part.scale.setScalar(1);
       });
       resetView();

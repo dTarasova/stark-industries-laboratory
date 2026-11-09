@@ -1,35 +1,43 @@
 import { useEffect, useRef, useState } from 'react';
 import { createScene } from './scene';
 import {
-  buildings, createElement, freshAttempt, matchesSelection, projectionTolerance, toggleBuilding,
-  type Attempt,
+  buildings, createElement, freshAttempt, matchesSelection, toggleBuilding,
+  type Attempt, type ElementModel,
 } from './puzzle';
 import './prototype.css';
 
-const storageKey = 'surkov-element-test-v1';
+const storageKey = 'surkov-element-test-v2';
+const elementKey = 'surkov-open-element';
+
+function readElement(value: unknown): ElementModel | undefined {
+  const element = value as ElementModel | null;
+  return element && Array.isArray(element.parts) && element.parts.length > 1 &&
+    element.parts.every(part => part && Number.isFinite(part.radius) && part.radius > 0 &&
+      Number.isInteger(part.color) && Array.isArray(part.center) && part.center.length === 3 &&
+      part.center.every(Number.isFinite)) ? element : undefined;
+}
 
 function loadAttempt(): Attempt {
+  let element: ElementModel | undefined;
   try {
-    const saved = sessionStorage.getItem(storageKey);
-    if (!saved) return freshAttempt();
-    const attempt = JSON.parse(saved) as Attempt | null;
-    if (!attempt || !Array.isArray(attempt.selected) ||
-      !attempt.selected.every(id => buildings.some(site => site.id === id))) return freshAttempt();
-
-    const element = attempt.element;
-    const validElement = element && Array.isArray(element.parts) && element.parts.length > 1 &&
-      element.parts.every(part => part && Number.isFinite(part.radius) && part.radius > 0 &&
-        Number.isInteger(part.color) && Array.isArray(part.center) && part.center.length === 3 &&
-        part.center.every(Number.isFinite));
-    if (attempt.stage === 'selection' ||
-      (attempt.stage === 'projection' && matchesSelection(new Set(attempt.selected))) ||
-      (attempt.stage === 'complete' && validElement)) {
-      return { ...attempt, element: validElement ? element : undefined };
+    element = readElement(JSON.parse(localStorage.getItem(elementKey) ?? 'null'));
+  } catch {
+    // Попытка доступна и без постоянного хранилища.
+  }
+  try {
+    const legacy = JSON.parse(sessionStorage.getItem('surkov-element-test-v1') ?? 'null');
+    const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') as Attempt | null;
+    element ??= readElement(saved?.element) ?? readElement(legacy?.element);
+    if (saved && Array.isArray(saved.selected) && new Set(saved.selected).size === saved.selected.length &&
+      saved.selected.every(id => buildings.some(site => site.id === id))) {
+      if (saved.stage === 'selection' ||
+        (saved.stage === 'projection' && matchesSelection(new Set(saved.selected))) ||
+        (saved.stage === 'complete' && element)) return { ...saved, element };
     }
   } catch {
-    // The prototype is still playable when browser storage is unavailable.
+    // При повреждённой попытке открываем исходный макет.
   }
-  return freshAttempt();
+  return freshAttempt(element);
 }
 
 const layersInitial = { roads: true, landscape: true, wires: false };
@@ -42,12 +50,11 @@ export function Prototype() {
   const [layers, setLayers] = useState(layersInitial);
   const [message, setMessage] = useState('');
   const [hint, setHint] = useState(false);
-  const [assisted, setAssisted] = useState(false);
-  const [proximity, setProximity] = useState('');
   const [assembling, setAssembling] = useState(false);
   const [viewSaved, setViewSaved] = useState(false);
   const [sceneError, setSceneError] = useState(false);
   const [storageError, setStorageError] = useState(false);
+  const [focusedBuilding, setFocusedBuilding] = useState<string>();
   const { stage, selected, element } = attempt;
   const showingElement = viewSaved || stage === 'complete';
   const selecting = stage === 'selection' && !showingElement;
@@ -59,7 +66,7 @@ export function Prototype() {
 
   useEffect(() => {
     try {
-      scene.current = createScene(host.current!, toggle);
+      scene.current = createScene(host.current!, setFocusedBuilding);
     } catch {
       setSceneError(true);
     }
@@ -70,27 +77,25 @@ export function Prototype() {
   }, []);
 
   useEffect(() => {
-    scene.current?.update(attempt, layers, viewSaved);
-  }, [attempt, layers, viewSaved]);
+    scene.current?.update(attempt, layers, viewSaved, focusedBuilding);
+  }, [attempt, layers, viewSaved, focusedBuilding]);
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify(attempt));
+      sessionStorage.setItem(storageKey, JSON.stringify({ selected, stage }));
     } catch {
       setStorageError(true);
     }
-  }, [attempt]);
+  }, [selected, stage]);
 
   useEffect(() => {
-    if (!projecting || !assisted || assembling) return;
-    const update = () => {
-      const error = scene.current?.measure() ?? Infinity;
-      setProximity(error <= projectionTolerance ? 'Очень близко' : error <= 0.55 ? 'Близко' : 'Далеко');
-    };
-    update();
-    const interval = window.setInterval(update, 160);
-    return () => window.clearInterval(interval);
-  }, [projecting, assisted, assembling]);
+    if (!element) return;
+    try {
+      localStorage.setItem(elementKey, JSON.stringify(element));
+    } catch {
+      setStorageError(true);
+    }
+  }, [element]);
 
   function check() {
     if (selecting) {
@@ -99,10 +104,10 @@ export function Prototype() {
         return;
       }
       setAttempt(current => ({ ...current, stage: 'projection' }));
-      setMessage('Исходные здания подтверждены. Найдите ракурс из образца.');
+      setMessage('Отбор подтверждён. В макете проявились фрагменты.');
       setHint(false);
     } else if (projecting && scene.current) {
-      if (scene.current.measure() > projectionTolerance) {
+      if (!scene.current.measure()) {
         setMessage('Структура пока не складывается. Продолжите исследование проекции');
         return;
       }
@@ -117,11 +122,14 @@ export function Prototype() {
   }
 
   function reset() {
+    if (!window.confirm(element
+      ? 'Вернуть исходный макет и начать с отбора зданий? Открытый элемент сохранится.'
+      : 'Вернуть исходный макет и начать с отбора зданий?')) return;
     scene.current?.reset();
+    setFocusedBuilding(undefined);
     setAttempt(freshAttempt(element));
     setLayers(layersInitial);
     setHint(false);
-    setAssisted(false);
     setAssembling(false);
     setViewSaved(false);
     setMessage('Исходный макет восстановлен.');
@@ -131,24 +139,32 @@ export function Prototype() {
     <main>
       <header>
         <div>
-          <p className="eyebrow">SURKOV INDUSTRIES / ИСПЫТАТЕЛЬНЫЙ СТЕНД</p>
           <h1>Новый элемент</h1>
+          <p className="guide">Испытательный стенд SURKOV INDUSTRIES</p>
         </div>
-        <button type="button" onClick={reset}>Сбросить попытку</button>
       </header>
-      <h2>{showingElement ? 'Открытый элемент' : selecting ? '01 / Отбор зданий' : '02 / Поиск проекции'}</h2>
+      <h2>{showingElement ? 'Открытый элемент' : selecting ? 'Отбор зданий' : 'Поиск проекции'}</h2>
       <p className="guide">
         {showingElement ? 'Вращайте открытый элемент мышью.' : selecting
-          ? 'Перетаскивайте макет для вращения. Нажмите на здание или его букву, чтобы изменить отбор.'
-          : 'Вращайте макет и сравнивайте цветные фрагменты с образцом. Колесо мыши меняет масштаб.'}
+          ? 'Перетаскивайте макет для вращения. Выберите здание на макете или в списке, затем скройте или верните его.'
+          : 'Совместите кольцо, ось и ромб. Колесо мыши меняет масштаб.'}
       </p>
       <div className="viewport" ref={host} aria-label={showingElement ? '3D-модель элемента' : '3D-макет выставки'}>
         {sceneError && <p role="alert">Не удалось запустить 3D. Проверьте, доступен ли WebGL в Chrome.</p>}
       </div>
       {selecting && <>
+        <p className="guide">Видимых зданий: {selected.length} из {buildings.length}. Сохраните восемь.</p>
         <div className="buttons buildings" aria-label="Здания в отборе">
-          {buildings.map(({ id }) => <button key={id} type="button" aria-label={'Здание ' + id}
-            aria-pressed={selected.includes(id)} onClick={() => toggle(id)}>{id}</button>)}
+          {buildings.map(({ id }) => <button key={id} type="button"
+            aria-label={`Здание ${id} · ${selected.includes(id) ? 'видно' : 'скрыто'}`}
+            data-hidden={!selected.includes(id)} aria-pressed={focusedBuilding === id}
+            onClick={() => setFocusedBuilding(id)}>{id}</button>)}
+          <button type="button" disabled={!focusedBuilding}
+            onClick={() => focusedBuilding && toggle(focusedBuilding)}>
+            {focusedBuilding
+              ? `${selected.includes(focusedBuilding) ? 'Скрыть' : 'Вернуть'} здание ${focusedBuilding}`
+              : 'Выберите здание'}
+          </button>
         </div>
         <div className="buttons" aria-label="Слои макета">
           {Object.entries(layerLabels).map(([key, label]) => {
@@ -161,21 +177,23 @@ export function Prototype() {
       <div className="buttons">
         {!showingElement && <>
           <button type="button" className="primary" disabled={sceneError || assembling} onClick={check}>Проверить гипотезу</button>
-          <button type="button" aria-expanded={hint} disabled={assembling} onClick={() => setHint(!hint)}>Подсказка</button>
+          <button type="button" aria-expanded={hint} disabled={assembling} onClick={() => {
+            setHint(!hint);
+          }}>Подсказка</button>
         </>}
         {element && stage !== 'complete' && <button type="button" disabled={assembling}
           onClick={() => { setViewSaved(!viewSaved); setHint(false); setMessage(''); }}>
           {viewSaved ? 'Вернуться к попытке' : 'Открыть сохранённый элемент'}
         </button>}
-        {projecting && <label><input type="checkbox" checked={assisted} disabled={assembling}
-          onChange={event => setAssisted(event.target.checked)} /> Помощь ведущей: близость</label>}
       </div>
       <p className="feedback" role="status">{message}</p>
       {hint && !showingElement && <p className="guide">{selecting
-        ? 'Начните с куполов и пройдите по линиям схемы. На последнем шаге сравните положение башен с проспектом.'
-        : 'Откройте в чате дополнительный фрагмент. Сначала сопоставьте две отмеченные детали.'}</p>}
-      {projecting && assisted && !assembling && <p className="guide">Близость к образцу: {proximity}</p>}
-      {storageError && <p className="guide" role="alert">Хранилище вкладки недоступно. Перезагрузка очистит попытку.</p>}
+        ? 'Включите коммуникации. Найдите переходы от фабрики через ворота, затем проверьте, какие замкнутые четвёрки окружают каждый двор.'
+        : 'Сравните концы двух длинных штрихов ближе к середине. У ромба ищите два коротких уголка: их верхние вершины должны встретиться, как и нижние.'}</p>}
+      <div className="attempt-tools">
+        <button type="button" disabled={assembling} onClick={reset}>Начать попытку заново</button>
+      </div>
+      {storageError && <p className="guide" role="alert">Хранилище вкладки недоступно. После перезагрузки часть данных может потеряться.</p>}
     </main>
   );
 }

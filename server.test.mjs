@@ -29,3 +29,37 @@ test('Общая миссия, защита и сохранение после �
  assert.equal((await post('mission',{stage:3,version:4},cookie)).status,401);
  }finally{if(server.listening) await new Promise(r=>server.close(r));rmSync(dir,{recursive:true});}
 });
+
+test('Защита запускается один раз после допуска, а резервный канал открывает ведущая', async ({mock}) => {
+ mock.timers.enable({apis: ['Date']});
+ const server = laboratory({database: ':memory:', password: 'test-password-only-123'});
+ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+ const base = 'http://127.0.0.1:' + server.address().port + '/api/';
+ const post = (path, body, cookie = '') => fetch(base + path, {
+  method: 'POST', headers: {'Content-Type': 'application/json', cookie}, body: JSON.stringify(body),
+ });
+ try {
+  const login = await post('login', {password: 'test-password-only-123'});
+  const cookie = login.headers.get('set-cookie').split(';')[0];
+  assert.equal((await post('mission', {stage: 3, version: 0}, cookie)).status, 200);
+  assert.equal((await post('activate-defense', {version: 1})).status, 409);
+  assert.equal((await post('authorize-defense', {version: 1})).status, 401);
+  assert.equal((await post('authorize-defense', {version: 1}, cookie)).status, 200);
+  const attempts = await Promise.all([post('activate-defense', {version: 2}), post('activate-defense', {version: 2})]);
+  assert.deepEqual(attempts.map(response => response.status).sort(), [200, 409]);
+  const mission = await (await fetch(base + 'mission')).json();
+  assert.equal(mission.stage, 4);
+  assert.ok(mission.takeoverEndsAt > mission.serverTime);
+  assert.equal((await post('open-recovery', {version: 3})).status, 401);
+  assert.equal((await post('open-recovery', {version: 3}, cookie)).status, 409);
+  mock.timers.tick(45_000);
+  const locked = await (await fetch(base + 'mission')).json();
+  assert.equal(locked.stage, 4);
+  assert.equal(locked.takeoverEndsAt, mission.takeoverEndsAt);
+  const recovery = await post('open-recovery', {version: 3}, cookie);
+  assert.equal(recovery.status, 200);
+  assert.equal((await recovery.json()).stage, 5);
+ } finally {
+  await new Promise(resolve => server.close(resolve));
+ }
+});
