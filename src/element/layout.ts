@@ -3,15 +3,15 @@ type Building = { id: string; x: number; z: number; roof: Roof; height: number }
 type PlanPoint = { x: number; z: number };
 
 export const buildings: Building[] = [
-  { id: 'A', x: -9, z: -4, roof: 'dome', height: 1.5 },
+  { id: 'A', x: -9.7, z: -3, roof: 'dome', height: 1.5 },
   { id: 'B', x: -3, z: -4, roof: 'spire', height: 1.7 },
-  { id: 'C', x: -3, z: 3.4, roof: 'split', height: 1.6 },
-  { id: 'D', x: -9, z: 3.4, roof: 'amber', height: 1.4 },
+  { id: 'C', x: -3.9, z: 2.6, roof: 'split', height: 1.6 },
+  { id: 'D', x: -8, z: 4.45, roof: 'amber', height: 1.4 },
   { id: 'E', x: -5.5, z: -7.7, roof: 'spire', height: 1.5 },
   { id: 'F', x: -1.25, z: 6.3, roof: 'split', height: 1.3 },
   { id: 'G', x: 3, z: -4, roof: 'dome', height: 1.85 },
-  { id: 'H', x: 9, z: -3.1, roof: 'spire', height: 1.6 },
-  { id: 'I', x: 9, z: 5.5, roof: 'split', height: 1.8 },
+  { id: 'H', x: 9.4, z: -2.8, roof: 'spire', height: 1.6 },
+  { id: 'I', x: 8, z: 5.7, roof: 'split', height: 1.8 },
   { id: 'J', x: 3, z: 3.4, roof: 'amber', height: 1.5 },
   { id: 'K', x: 7, z: -7, roof: 'amber', height: 1.2 },
   { id: 'L', x: -12, z: -5.4, roof: 'spire', height: 1.35 },
@@ -28,12 +28,12 @@ export const buildings: Building[] = [
 export const factory = 'G';
 export const carousel = { x: -6.5, z: 0 };
 export const swings = { x: 6, z: 0 };
-export const fence = { x: 0, start: -8, gateStart: -4.7, gateEnd: -3.2, end: 1.8 };
+export const fence = { x: 0, start: -7.35, gateStart: -4.7, gateEnd: -3.2, end: 1.8 };
 export const links = [
   'AB', 'BC', 'CD', 'DA', 'AE', 'EC', 'BF', 'FD',
   'GH', 'HI', 'IJ', 'JG', 'GK', 'KI',
   'BG', 'EG', 'CJ', 'FI', 'EK',
-  'AM', 'CM', 'MH', 'AL', 'LB', 'LD', 'LM', 'MN', 'ND', 'NO', 'OF', 'FP', 'PQ', 'QI', 'IR', 'RS', 'ST', 'TK', 'HS',
+  'AM', 'CM', 'MH', 'AL', 'LB', 'LD', 'LM', 'MN', 'ND', 'NO', 'OF', 'FP', 'PQ', 'IR', 'RS', 'ST', 'TK', 'HS',
 ];
 
 const edge = (a: string, b: string) => [a, b].sort().join('');

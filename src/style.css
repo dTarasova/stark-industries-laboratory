@@ -300,9 +300,19 @@ body:has(.takeover-overlay) { overflow: hidden; }
   margin-bottom: 16px;
 }
 .takeover-progress progress { grid-column: span 2; width: 100%; accent-color: var(--terminal-accent); }
-.takeover-log { list-style: none; margin: 0; padding: 0; line-height: 1.5; }
+.takeover-log {
+  height: 8rem;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--terminal-accent) #161c20;
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 0 0;
+  line-height: 1.5;
+}
 .takeover-log li + li { margin-top: 4px; }
-.takeover-terminal[data-compromised="true"] .takeover-log li:last-child { color: var(--terminal-accent); }
+.takeover-log li[data-warning="true"] { color: var(--terminal-accent); }
 .takeover-threat { margin-top: 20px; text-transform: uppercase; }
 .takeover-threat p, .takeover-greeting p { margin: 0; }
 .takeover-threat strong { font-size: clamp(22px, 5vw, 40px); }

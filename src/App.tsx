@@ -5,7 +5,7 @@ import {LaboratoryOverview, badgeNames} from './LaboratoryOverview';
 import {UltronTerminal} from './UltronTerminal';
 import {Development} from './Development';
 export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number};
-type MissionSnapshot = Mission & {receivedAt:number};
+type MissionSnapshot = Mission & {receivedAt:number; takeoverDeadline:number|null};
 export function App({experiment, allowOfflineExperiment = false}: {
  experiment?: ReactNode;
  allowOfflineExperiment?: boolean;
@@ -18,9 +18,17 @@ export function App({experiment, allowOfflineExperiment = false}: {
  const goals=['Осмотритесь в лаборатории. Следующее задание объявит ведущая.','Получите код EDITH для текущей разработки.','Найдите структуру нового элемента.','Подготовьте защиту Земли по заданию ведущей.','Следуйте инструкциям резервного канала.','Исследуйте варианты будущего по материалам ведущей.','Верните JARVIS по инструкции ведущей.','Подготовьтесь к окончательному отключению Альтрона.','Миссия завершена. Сохраните воспоминания об этом дне.'];
  const control=location.pathname==='/control';
  function acceptMission(next: Mission) {
-   const snapshot = {...next, receivedAt: performance.now()};
-   setMission(current => !current || next.version > current.version ||
-     (next.version === current.version && next.serverTime >= current.serverTime) ? snapshot : current);
+   const receivedAt = performance.now();
+   setMission(current => {
+     if (current && (next.version < current.version ||
+       (next.version === current.version && next.serverTime < current.serverTime))) return current;
+     const deadline = next.takeoverEndsAt === null ? null : receivedAt + next.takeoverEndsAt - next.serverTime;
+     const sameTakeover = current?.takeoverEndsAt === next.takeoverEndsAt;
+     const takeoverDeadline = deadline !== null && sameTakeover && current?.takeoverDeadline != null
+       ? Math.min(deadline, current.takeoverDeadline)
+       : deadline;
+     return {...next, receivedAt, takeoverDeadline};
+   });
  }
  async function refresh(){if(fetching.current)return;fetching.current=true;try{const r=await fetch('/api/mission',{signal:AbortSignal.timeout(8000)});if(!r.ok)throw Error();acceptMission(await r.json());setOnline(true);}catch{setOnline(false);}finally{fetching.current=false;setCheckedConnection(true);}}
  useEffect(() => {
@@ -35,8 +43,8 @@ export function App({experiment, allowOfflineExperiment = false}: {
      document.removeEventListener('visibilitychange', refreshVisibleTab);
    };
  }, []);
- const remaining = mission?.takeoverEndsAt != null
-   ? mission.takeoverEndsAt - mission.serverTime - Math.max(0, clock - mission.receivedAt)
+ const remaining = mission?.takeoverDeadline != null
+   ? mission.takeoverDeadline - Math.max(clock, mission.receivedAt)
    : 0;
  const playing = mission?.stage === 4 && remaining > 0;
  useEffect(() => {

@@ -96,7 +96,7 @@ function dispose(group: THREE.Object3D) {
   });
 }
 
-export function createScene(host: HTMLElement, onBuilding: (id: string) => void) {
+export function createScene(host: HTMLElement, onBuilding: (id?: string) => void) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   const canvas = renderer.domElement;
@@ -129,9 +129,13 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
   scene.add(expo, result);
   const table = box(28, 0.65, 19, 0x354b59, 0, -0.36, 0);
   const roads = new THREE.Group();
-  roads.add(box(1, 0.025, 19, 0x6c8290, 0, 0, 0), box(28, 0.025, 0.8, 0x6c8290, 0, 0, 8.7));
-  const north = label('СЕВЕР', 0.7);
-  north.position.set(0, 0.42, -8.9);
+  roads.add(box(1, 0.025, 19, 0x6c8290, 13.4, 0, 0), box(28, 0.025, 0.8, 0x6c8290, 0, 0, 8.7));
+  const compass = new THREE.Group();
+  for (const [text, x, z] of [['С', 0, -8.9], ['Ю', 0, 9], ['З', -13.4, 0], ['В', 13.4, 0]] as const) {
+    const marker = label(text, 0.58);
+    marker.position.set(x, 0.42, z);
+    compass.add(marker);
+  }
   const landscape = new THREE.Group();
   for (const [x, z] of [[-13,-2], [-7,-7.5], [5,-7.9], [13,2.7], [-13,7], [11,7.2]]) {
     landscape.add(box(0.16, 0.65, 0.16, 0x725444, x, 0.3, z));
@@ -178,15 +182,33 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
   }
 
   const shells = new Map(buildings.map(site => [site.id as string, building(site)]));
-  const wires = links.map(pair => {
+  // Сдвиги вдоль трасс оставляют просвет у корпусов и соседних крон.
+  const treeOffsets: Record<string, [number, number]> = {
+    GK: [0.44, 0.68], KI: [0.36, 0.68], CJ: [0.4, 0.68],
+    AL: [0.36, 0.64], LD: [0.32, 0.72],
+  };
+  const wires = links.map((pair, index) => {
     const start = shells.get(pair[0])!.position.clone().setY(0.36);
     const end = shells.get(pair[1])!.position.clone().setY(0.36);
     const line = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([start, end]),
       new THREE.LineBasicMaterial({ color: 0x48f2db }),
     );
-    expo.add(line);
-    return { pair, line };
+    const trees = new THREE.Group();
+    const markers = [];
+    for (const distance of treeOffsets[pair] ?? [0.32, 0.68]) {
+      const { x, z } = start.clone().lerp(end, distance);
+      trees.add(
+        box(0.09, 0.25, 0.09, 0xa27a4d, x, 0.125, z),
+        mesh(new THREE.SphereGeometry(0.22, 12, 8), 0x93bc60, x, 0.36, z),
+      );
+      const badge = label(String(index + 1), 0.3);
+      badge.position.set(x, 0.8, z);
+      trees.add(badge);
+      markers.push(badge);
+    }
+    expo.add(line, trees);
+    return { pair, line, trees, markers };
   });
   const pieces = new THREE.Group();
   const fragmentObjects = fragments.map(({ center, points }) => {
@@ -202,7 +224,7 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
     pieces.add(part);
     return part;
   });
-  expo.add(table, roads, landscape, landmarks, north, pieces, ...shells.values());
+  expo.add(table, roads, landscape, landmarks, compass, pieces, ...shells.values());
 
   let currentStage: Attempt['stage'] = 'selection';
   let showingResult = false;
@@ -249,10 +271,14 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
     landscape.visible = layers.landscape && !transparent;
     pieces.visible = transparent;
     landmarks.visible = !transparent;
-    north.visible = !transparent;
+    compass.visible = !transparent;
     const activeLinks = new Set(visibleLinks(visible));
-    wires.forEach(({ pair, line }) => {
-      line.visible = layers.wires && !transparent && activeLinks.has(pair);
+    wires.forEach(({ pair, line, trees, markers }) => {
+      trees.visible = !transparent && activeLinks.has(pair);
+      line.visible = trees.visible && layers.wires;
+      markers.forEach(marker => {
+        marker.visible = focusedBuilding !== undefined && pair.includes(focusedBuilding);
+      });
     });
     for (const [id, shell] of shells) {
       shell.visible = visible.has(id);
@@ -318,7 +344,7 @@ export function createScene(host: HTMLElement, onBuilding: (id: string) => void)
     const meshes = [...shells.values()].filter(shell => shell.visible).flatMap(shell => shell.children);
     const hit = ray.intersectObjects(meshes, false)[0];
     const clicked = [...shells].find(([, shell]) => shell === hit?.object.parent);
-    if (clicked) onBuilding(clicked[0]);
+    onBuilding(clicked?.[0]);
   };
   canvas.addEventListener('pointerdown', pointerDown);
   canvas.addEventListener('pointerup', pointerUp);

@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useLayoutEffect, useRef} from 'react';
 
 const log = [
   [0, 'Запуск принят. Подключаю орбитальную сеть'],
@@ -23,6 +23,8 @@ const greeting = [
 
 export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: boolean}) {
   const panel = useRef<HTMLElement>(null);
+  const logPanel = useRef<HTMLUListElement>(null);
+  const followLog = useRef(true);
   useEffect(() => {panel.current?.focus();}, []);
 
   const arrival = elapsed >= 41000;
@@ -30,7 +32,11 @@ export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: 
   const progress = scanning
     ? Math.min(98, Math.floor((elapsed - 23000) / 2000 * 98))
     : Math.min(100, Math.floor(elapsed / 180));
-  const lines = log.filter(([time]) => time <= elapsed).slice(-4);
+  const lines = log.filter(([time]) => time <= elapsed);
+  useLayoutEffect(() => {
+    const list = logPanel.current;
+    if (list && followLog.current) list.scrollTop = list.scrollHeight;
+  }, [lines.length]);
 
   return (
     <div className="takeover-overlay">
@@ -49,8 +55,12 @@ export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: 
           </div>
         )}
         <div aria-live="polite">
-          <ul className="takeover-log">
-            {lines.map(([time, line]) => <li key={time}>{line}</li>)}
+          <ul ref={logPanel} tabIndex={0} aria-label="Журнал планетарной защиты" className="takeover-log"
+            onScroll={event => {
+              const list = event.currentTarget;
+              followLog.current = list.scrollHeight - list.clientHeight - list.scrollTop <= 2;
+            }}>
+            {lines.map(([time, line]) => <li key={time} data-warning={time >= 31000}>{line}</li>)}
           </ul>
           {elapsed >= 32000 && <div className="takeover-threat">
             <p>Угроза обнаружена</p>

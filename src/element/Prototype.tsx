@@ -40,8 +40,8 @@ function loadAttempt(): Attempt {
   return freshAttempt(element);
 }
 
-const layersInitial = { roads: true, landscape: true, wires: false };
-const layerLabels = { roads: 'Дороги', landscape: 'Деревья и рельеф', wires: 'Коммуникации' };
+const layersInitial = { roads: true, landscape: true };
+const layerLabels = { roads: 'Дороги', landscape: 'Декоративные деревья' };
 
 export function Prototype() {
   const host = useRef<HTMLDivElement>(null);
@@ -64,9 +64,13 @@ export function Prototype() {
     setMessage('');
   };
 
+  function chooseBuilding(id?: string) {
+    setFocusedBuilding(current => current === id ? undefined : id);
+  }
+
   useEffect(() => {
     try {
-      scene.current = createScene(host.current!, setFocusedBuilding);
+      scene.current = createScene(host.current!, chooseBuilding);
     } catch {
       setSceneError(true);
     }
@@ -77,8 +81,8 @@ export function Prototype() {
   }, []);
 
   useEffect(() => {
-    scene.current?.update(attempt, layers, viewSaved, focusedBuilding);
-  }, [attempt, layers, viewSaved, focusedBuilding]);
+    scene.current?.update(attempt, { ...layers, wires: hint }, viewSaved, focusedBuilding);
+  }, [attempt, layers, viewSaved, focusedBuilding, hint]);
 
   useEffect(() => {
     try {
@@ -136,7 +140,9 @@ export function Prototype() {
   }
 
   return (
-    <main>
+    <main onKeyDown={event => {
+      if (event.key === 'Escape' && selecting) setFocusedBuilding(undefined);
+    }}>
       <header>
         <div>
           <h1>Новый элемент</h1>
@@ -146,19 +152,20 @@ export function Prototype() {
       <h2>{showingElement ? 'Открытый элемент' : selecting ? 'Отбор зданий' : 'Поиск проекции'}</h2>
       <p className="guide">
         {showingElement ? 'Вращайте открытый элемент мышью.' : selecting
-          ? 'Перетаскивайте макет для вращения. Выберите здание на макете или в списке, затем скройте или верните его.'
+          ? 'Перетаскивайте макет для вращения. Выберите здание на макете или в списке. Повторное нажатие или Esc снимает выбор.'
           : 'Совместите кольцо, ось и ромб. Колесо мыши меняет масштаб.'}
       </p>
       <div className="viewport" ref={host} aria-label={showingElement ? '3D-модель элемента' : '3D-макет выставки'}>
         {sceneError && <p role="alert">Не удалось запустить 3D. Проверьте, доступен ли WebGL в Chrome.</p>}
       </div>
       {selecting && <>
+        <p className="guide">Пара круглых деревьев отмечает прямую связь. При выборе здания на его деревьях появляются номера пар.</p>
         <p className="guide">Видимых зданий: {selected.length} из {buildings.length}. Сохраните восемь.</p>
         <div className="buttons buildings" aria-label="Здания в отборе">
           {buildings.map(({ id }) => <button key={id} type="button"
             aria-label={`Здание ${id} · ${selected.includes(id) ? 'видно' : 'скрыто'}`}
             data-hidden={!selected.includes(id)} aria-pressed={focusedBuilding === id}
-            onClick={() => setFocusedBuilding(id)}>{id}</button>)}
+            onClick={() => chooseBuilding(id)}>{id}</button>)}
           <button type="button" disabled={!focusedBuilding}
             onClick={() => focusedBuilding && toggle(focusedBuilding)}>
             {focusedBuilding
@@ -188,7 +195,7 @@ export function Prototype() {
       </div>
       <p className="feedback" role="status">{message}</p>
       {hint && !showingElement && <p className="guide">{selecting
-        ? 'Включите коммуникации. Найдите переходы от фабрики через ворота, затем проверьте, какие замкнутые четвёрки окружают каждый двор.'
+        ? 'На макете показаны линии между видимыми зданиями. По меткам сторон света проверьте, какая трасса проходит в ворота, а какая огибает конец забора.'
         : 'Сравните концы двух длинных штрихов ближе к середине. У ромба ищите два коротких уголка: их верхние вершины должны встретиться, как и нижние.'}</p>}
       <div className="attempt-tools">
         <button type="button" disabled={assembling} onClick={reset}>Начать попытку заново</button>
