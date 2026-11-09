@@ -5,7 +5,7 @@ import {mkdirSync, readFileSync} from 'node:fs';
 import {resolve, extname} from 'node:path';
 export const stages = ['Знакомство с лабораторией','EDITH — текущая разработка','Новый элемент','Защита Земли','Атака Альтрона','Временные линии','Восстановление JARVIS','Clean Slate','Победа'];
 const takeoverDuration = 45_000;
-export function laboratory({database='data/mission.sqlite',password,secure=false}) {
+export function laboratory({database='data/mission.sqlite',password,edithCode,secure=false}) {
  if (!password || password.length < 16) throw Error('Задайте ADMIN_PASSWORD длиной от 16 символов');
  const db=new DatabaseSync(database); db.exec('CREATE TABLE IF NOT EXISTS mission (id INTEGER PRIMARY KEY CHECK(id=1), stage INTEGER NOT NULL, version INTEGER NOT NULL); INSERT OR IGNORE INTO mission (id,stage,version) VALUES(1,0,0)');
  if (!db.prepare('PRAGMA table_info(mission)').all().some(column => column.name === 'badges')) {
@@ -18,15 +18,17 @@ export function laboratory({database='data/mission.sqlite',password,secure=false
  if (!columns.some(column => column.name === 'takeoverEndsAt')) {
   db.exec('ALTER TABLE mission ADD COLUMN takeoverEndsAt INTEGER');
  }
+ if (!columns.some(column => column.name === 'edithUnlocked')) {
+  db.exec('ALTER TABLE mission ADD COLUMN edithUnlocked INTEGER NOT NULL DEFAULT 0');
+ }
  const sessions=new Map(); const attempts=new Map();
  const state=()=>db.prepare('SELECT stage,version,badges FROM mission WHERE id=1').get();
- const publicMission = () => ({
-  ...db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt FROM mission WHERE id=1').get(),
-  stages,
-  takeoverDuration,
-  serverTime: Date.now(),
- });
+ const publicMission = () => {
+  const {edithUnlocked, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked FROM mission WHERE id=1').get();
+  return {...mission, edithUnlocked: Boolean(edithUnlocked), stages, takeoverDuration, serverTime: Date.now()};
+ };
  const hash=s=>createHash('sha256').update(s).digest();
+ const edithHash = edithCode?.trim() ? hash(edithCode.trim()) : undefined;
  const server=createServer(async(req,res)=>{
   const send=(status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
   try {
@@ -38,6 +40,17 @@ export function laboratory({database='data/mission.sqlite',password,secure=false
     if(!req.headers['content-type']?.startsWith('application/json')) return send(415,{error:'Требуется JSON'});
     let raw=''; for await(const chunk of req){raw+=chunk; if(raw.length>4096) return send(413,{error:'Слишком большой запрос'});}
     let body; try {body=JSON.parse(raw);} catch {return send(400,{error:'Некорректный запрос'});}
+    if (path === '/api/edith') {
+     const {stage} = state();
+     if (stage >= 4 && stage <= 6) return send(409, {error:'Доступ заблокирован.'});
+     if (!edithHash) return send(503, {error:'Код EDITH ещё не настроен.'});
+     const code = typeof body?.code === 'string' ? body.code.trim() : '';
+     if (!code || !timingSafeEqual(hash(code), edithHash)) {
+      return send(422, {error:'Код не подошёл. Проверьте его и попробуйте ещё раз.'});
+     }
+     db.prepare('UPDATE mission SET edithUnlocked=1, version=version+1 WHERE id=1 AND edithUnlocked=0').run();
+     return send(200, publicMission());
+    }
     if(path==='/api/login') {
      const key=req.socket.remoteAddress; const now=Date.now(); const attempt=attempts.get(key);
      if(attempt && attempt.until>now && attempt.count>=5) return send(429,{error:'Повторите вход через 15 минут'});
@@ -83,12 +96,15 @@ export function laboratory({database='data/mission.sqlite',password,secure=false
    }
    if(req.method!=='GET') return send(405,{});
    const root=resolve('dist');
-   const page=['/', '/control', '/archive', '/development'].includes(path)?'/index.html':
-     ['/prototype', '/prototype/'].includes(path)?'/prototype/index.html':path;
+   if (['/prototype', '/prototype/', '/prototype/index.html'].includes(path)) {
+    res.writeHead(302, {Location:'/development'});
+    return res.end();
+   }
+   const page=['/', '/control', '/archive', '/development'].includes(path)?'/index.html':path;
    const file=resolve(root,'.'+page);
    if(!file.startsWith(root+'/')&&!file.startsWith(root+'\\')) return send(404,{});
    try {res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css'})[extname(file)]||'application/octet-stream');res.end(readFileSync(file));}catch{return send(404,{error:'Не найдено'});}
   } catch {send(500,{error:'Сервис временно недоступен'});}
  });server.on('close',()=>db.close());return server;
 }
-if(process.argv[1]===resolve('server.mjs')) {mkdirSync('data',{recursive:true}); laboratory({password:process.env.ADMIN_PASSWORD,secure:process.env.NODE_ENV==='production'}).listen(Number(process.env.PORT||3000),'0.0.0.0');}
+if(process.argv[1]===resolve('server.mjs')) {mkdirSync('data',{recursive:true}); laboratory({password:process.env.ADMIN_PASSWORD,edithCode:process.env.EDITH_CODE,secure:process.env.NODE_ENV==='production'}).listen(Number(process.env.PORT||3000),'0.0.0.0');}

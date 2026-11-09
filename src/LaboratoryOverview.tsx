@@ -11,9 +11,10 @@ const replies = [
 ];
 const greeting = 'Добро пожаловать, мистер Сурков. Сканирование дугового реактора завершено. Лаборатория открыта.';
 
-export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured}: {
+export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured, edithUnlocked}: {
   stage?: number;
   elementDiscovered: boolean;
+  edithUnlocked: boolean;
   badges?: number;
   children: ReactNode;
   captured?: boolean;
@@ -97,7 +98,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
       </div>
       {scan === 'done' && (
         <div className="lab-workspace">
-          <LaboratorySystems stage={stage} elementDiscovered={elementDiscovered} onDiagnosis={announce}/>
+          <LaboratorySystems stage={stage} edithUnlocked={edithUnlocked} elementDiscovered={elementDiscovered} onDiagnosis={announce}/>
           <div className="mission-column">{children}</div>
           <section className="lab-panel" aria-labelledby="founder-achievements">
             <h2 id="founder-achievements">Личные достижения</h2>

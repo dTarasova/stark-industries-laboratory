@@ -4,5 +4,5 @@ import { App } from '../App';
 import { Prototype } from './Prototype';
 
 createRoot(document.getElementById('root')!).render(
-  <App experiment={<Prototype />} allowOfflineExperiment={import.meta.env.DEV} />,
+  <App experiment={<div className="element-experiment"><Prototype /></div>} allowOfflineExperiment={import.meta.env.DEV} />,
 );

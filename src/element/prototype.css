@@ -1,24 +1,18 @@
-:root {
-  color-scheme: dark;
-  font: 16px/1.45 system-ui, sans-serif;
-  background: #0b131c;
-  color: #edf6ff;
-}
+.element-experiment { color-scheme: dark; font: 16px/1.45 system-ui, sans-serif; color: #edf6ff; }
 
-body { margin: 0; }
-main { width: min(1050px, calc(100% - 32px)); margin: 20px auto; }
-header, .buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
-header { justify-content: space-between; }
-h1 { margin: 2px 0 0; font-size: clamp(1.5rem, 4vw, 2.15rem); }
-h2 { margin: 12px 0 3px; font-size: 1.15rem; }
-.guide { color: #becddd; margin: 4px 0 9px; }
-.viewport { height: clamp(290px, 53vh, 600px); overflow: hidden; border: 1px solid #41596c; border-radius: 8px; }
-.viewport canvas { display: block; touch-action: none; cursor: grab; }
-.viewport canvas:active { cursor: grabbing; }
-.viewport p { padding: 16px; }
-.buttons { margin-top: 9px; }
-.buildings { gap: 5px; }
-button {
+.element-experiment main { width: min(1050px, calc(100% - 32px)); margin: 20px auto; }
+.element-experiment header, .element-experiment .buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.element-experiment header { justify-content: space-between; }
+.element-experiment h1 { margin: 2px 0 0; font-size: clamp(1.5rem, 4vw, 2.15rem); }
+.element-experiment h2 { margin: 12px 0 3px; font-size: 1.15rem; }
+.element-experiment .guide { color: #becddd; margin: 4px 0 9px; }
+.element-experiment .viewport { height: clamp(290px, 53vh, 600px); overflow: hidden; border: 1px solid #41596c; border-radius: 8px; }
+.element-experiment .viewport canvas { display: block; touch-action: none; cursor: grab; }
+.element-experiment .viewport canvas:active { cursor: grabbing; }
+.element-experiment .viewport p { padding: 16px; }
+.element-experiment .buttons { margin-top: 9px; }
+.element-experiment .buildings { gap: 5px; }
+.element-experiment button {
   font: inherit;
   padding: 5px 11px;
   border: 1px solid #526b80;
@@ -27,11 +21,11 @@ button {
   color: inherit;
   cursor: pointer;
 }
-.buildings button { min-width: 44px; min-height: 44px; }
-.buildings button[data-hidden="true"] { text-decoration: line-through; }
-button[aria-pressed="true"], .primary { background: #1e4c5e; border-color: #68b8cd; }
-button:disabled { opacity: 0.55; cursor: default; }
-:focus-visible { outline: 2px solid #86e5ff; outline-offset: 2px; }
-.feedback { color: #a1e9f1; margin: 6px 0; }
-.attempt-tools { margin-top: 20px; padding-top: 12px; border-top: 1px solid #41596c; }
-.attempt-tools button { background: transparent; color: #becddd; }
+.element-experiment .buildings button { min-width: 44px; min-height: 44px; }
+.element-experiment .buildings button[data-hidden="true"] { text-decoration: line-through; }
+.element-experiment button[aria-pressed="true"], .element-experiment .primary { background: #1e4c5e; border-color: #68b8cd; }
+.element-experiment button:disabled { opacity: 0.55; cursor: default; }
+.element-experiment :focus-visible { outline: 2px solid #86e5ff; outline-offset: 2px; }
+.element-experiment .feedback { color: #a1e9f1; margin: 6px 0; }
+.element-experiment .attempt-tools { margin-top: 20px; padding-top: 12px; border-top: 1px solid #41596c; }
+.element-experiment .attempt-tools button { background: transparent; color: #becddd; }

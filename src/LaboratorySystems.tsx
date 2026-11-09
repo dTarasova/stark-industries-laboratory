@@ -19,9 +19,10 @@ const systemSymbols = [
   'M5 3h10l4 4v14H5z M15 3v5h4 M8 12h8 M8 16h5',
 ];
 
-export function LaboratorySystems({stage, elementDiscovered, onDiagnosis}: {
+export function LaboratorySystems({stage, elementDiscovered, edithUnlocked, onDiagnosis}: {
   stage?: number;
   elementDiscovered: boolean;
+  edithUnlocked: boolean;
   onDiagnosis: (text: string) => void;
 }) {
   const [step, setStep] = useState(-1);
@@ -31,13 +32,13 @@ export function LaboratorySystems({stage, elementDiscovered, onDiagnosis}: {
     ['Дуговой реактор', stage === undefined ? 'Ожидаем данные' : reactor],
     ['JARVIS', 'Канал сообщений'],
     ['Дамми', 'Оборудование лаборатории'],
-    ['Текущая разработка', 'Доступ закрыт · EDITH'],
+    ['Текущая разработка', edithUnlocked ? 'Доступ открыт · EDITH' : 'Доступ закрыт · EDITH'],
   ];
 
   function finish() {
     const text = stage === undefined
       ? 'Ожидаем данные миссии.'
-      : diagnostics[stage] + ' Реактор — ' + reactor.toLowerCase() + '.';
+      : (stage === 1 && edithUnlocked ? 'EDITH открыла доступ к разработке.' : diagnostics[stage]) + ' Реактор — ' + reactor.toLowerCase() + '.';
     setStep(-1);
     setReport(text);
     onDiagnosis(text);
@@ -50,7 +51,7 @@ export function LaboratorySystems({stage, elementDiscovered, onDiagnosis}: {
       else setStep(step + 1);
     }, 450);
     return () => window.clearTimeout(timer);
-  }, [step, stage, reactor]);
+  }, [step, stage, reactor, edithUnlocked]);
 
   return (
     <section className="lab-panel" aria-labelledby="systems-title">

@@ -63,3 +63,45 @@ test('Защита запускается один раз после допус�
   await new Promise(resolve => server.close(resolve));
  }
 });
+
+test('EDITH открывает разработку для общей миссии и сохраняет допуск', async () => {
+ const dir = mkdtempSync(join(tmpdir(), 'surkov-edith-'));
+ const options = {
+  database: join(dir, 'mission.sqlite'),
+  password: 'test-admin-password-123',
+  edithCode: 'test-edith',
+ };
+ let server;
+ async function start() {
+  server = laboratory(options);
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  return 'http://127.0.0.1:' + server.address().port;
+ }
+ try {
+  let url = await start();
+  const mission = async () => (await fetch(url + '/api/mission')).json();
+  const post = (path, body) => fetch(url + '/api/' + path, {
+   method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body),
+  });
+  const initial = await mission();
+  assert.equal(initial.edithUnlocked, false);
+  const legacyPage = await fetch(url + '/prototype/index.html', {redirect: 'manual'});
+  assert.equal(legacyPage.status, 302);
+  assert.equal(legacyPage.headers.get('location'), '/development');
+  assert.equal((await post('edith', {code: 'wrong'})).status, 422);
+  assert.equal((await mission()).edithUnlocked, false);
+  assert.equal((await post('edith', {code: options.edithCode})).status, 200);
+  assert.equal((await mission()).stage, initial.stage);
+  const unlocked = await mission();
+  assert.equal(unlocked.edithUnlocked, true);
+  assert.equal((await post('edith', {code: options.edithCode})).status, 200);
+  assert.equal((await mission()).version, unlocked.version);
+  assert.equal((await post('mission', {stage: 2, version: initial.version})).status, 401);
+  await new Promise(resolve => server.close(resolve));
+  url = await start();
+  assert.equal((await mission()).edithUnlocked, true);
+ } finally {
+  if (server?.listening) await new Promise(resolve => server.close(resolve));
+  rmSync(dir, {recursive: true});
+ }
+});

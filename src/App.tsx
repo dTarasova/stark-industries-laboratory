@@ -3,7 +3,8 @@ import './style.css';
 import {FounderArchive} from './FounderArchive';
 import {LaboratoryOverview, badgeNames} from './LaboratoryOverview';
 import {UltronTerminal} from './UltronTerminal';
-type Mission={stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number};
+import {Development} from './Development';
+export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number};
 type MissionSnapshot = Mission & {receivedAt:number};
 export function App({experiment, allowOfflineExperiment = false}: {
  experiment?: ReactNode;
@@ -55,7 +56,9 @@ export function App({experiment, allowOfflineExperiment = false}: {
    <section>
      <p role="status">{online ? 'Связь с лабораторией установлена' : 'Нет связи с лабораторией'}</p>
      <h2>{mission?.stages[mission.stage] ?? 'Получаем состояние…'}</h2>
-     <p>{mission ? goals[mission.stage] : 'Ожидайте подключения.'}</p>
+     <p>{mission?.stage === 1 && mission.edithUnlocked
+       ? 'Откройте «Текущую разработку», чтобы исследовать новый элемент.'
+       : mission ? goals[mission.stage] : 'Ожидайте подключения.'}</p>
      {!control && mission?.stage === 3 && (mission.defenseAuthorized
        ? <button disabled={busy || !online} onClick={() => void action(() => runCommand('activate-defense', mission.version))}>Активировать планетарную защиту</button>
        : <p>Ожидайте разрешения ведущей на запуск.</p>)}
@@ -75,7 +78,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
        {showOverview && !recovery && (
          <div className="takeover-backdrop" data-captured={captured && elapsed >= 36000} inert={captured}>
            <LaboratoryOverview stage={mission.stage} elementDiscovered={mission.elementDiscovered === true} badges={mission.badges}
-             captured={captured}>{missionSummary}</LaboratoryOverview>
+             captured={captured} edithUnlocked={mission.edithUnlocked}>{missionSummary}</LaboratoryOverview>
          </div>
        )}
        {captured && <UltronTerminal elapsed={elapsed} finished={!playing} />}
@@ -87,7 +90,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
          </main>
        )}
        {mission && !captured && !recovery && isArchive && <FounderArchive />}
-       {mission && !captured && !recovery && isDevelopment && <ClosedDevelopment />}
+       {mission && !captured && !recovery && isDevelopment && <Development unlocked={mission.edithUnlocked} onUnlock={acceptMission} />}
      </>
    );
  }
@@ -139,20 +142,3 @@ const isArchive = location.pathname === '/archive';
 if (isArchive) document.title = 'Архив проектов основателя | SURKOV INDUSTRIES';
 const isDevelopment = location.pathname === '/development';
 if (isDevelopment) document.title = 'Текущая разработка | SURKOV INDUSTRIES';
-
-function ClosedDevelopment() {
-  return (
-    <main className="development-entry">
-      <header><span>SURKOV INDUSTRIES</span><a href="/">Лаборатория</a></header>
-      <h1>Текущая разработка</h1>
-      <div className="development-access">
-        <h2>Доступ закрыт</h2>
-        <p>Для входа в рабочее пространство потребуется код EDITH.</p>
-        <p className="development-note">Проверка кода пока недоступна.</p>
-      </div>
-    </main>
-  );
-}
-
-
-

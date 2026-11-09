@@ -5,6 +5,7 @@ services:
       - "127.0.0.1:${HOST_PORT:-3000}:3000"
     environment:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Укажите ADMIN_PASSWORD в .env}
+      EDITH_CODE: ${EDITH_CODE:-}
       NODE_ENV: ${NODE_ENV:-development}
       PORT: "3000"
     volumes:
