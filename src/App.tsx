@@ -5,6 +5,8 @@ import {LaboratoryOverview, badgeNames} from './LaboratoryOverview';
 import {UltronTerminal} from './UltronTerminal';
 import {Dummy} from './Dummy';
 import {Development} from './Development';
+import {CleanSlate} from './clean-slate/CleanSlate';
+import {readProgress} from './clean-slate/storage';
 export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number;missionRun:number;recoveryRequested:number;recoveryHints:string[]};
 type MissionSnapshot = Mission & {receivedAt:number; takeoverDeadline:number|null};
 export function App({experiment, allowOfflineExperiment = false}: {
@@ -73,13 +75,14 @@ export function App({experiment, allowOfflineExperiment = false}: {
      {!control && mission?.stage === 3 && (mission.defenseAuthorized
        ? <button disabled={busy || !online} onClick={() => void action(() => runCommand('activate-defense', mission.version))}>Активировать планетарную защиту</button>
        : <p>Ожидайте разрешения ведущей на запуск.</p>)}
+     {!control && mission && mission.stage >= 7 && !isCleanSlate && <p><a href="/clean-slate">Открыть Clean Slate / DUM-E</a></p>}
      {!control && error && <p role="alert">{error}</p>}
    </section>
  );
  if (!control) {
    const captured = mission?.stage === 4;
    const showExperiment = Boolean(mission) || (allowOfflineExperiment && checkedConnection);
-   const showOverview = mission && (captured || (!experiment && !isArchive && !isDevelopment));
+   const showOverview = mission && (captured || (!experiment && !isArchive && !isDevelopment && !isCleanSlate));
    const elapsed = (mission?.takeoverDuration ?? 0) - Math.max(0, remaining);
    return (
      <>
@@ -88,8 +91,13 @@ export function App({experiment, allowOfflineExperiment = false}: {
        {showOverview && !recovery && (
          <div className="takeover-backdrop" data-captured={captured && elapsed >= 36000} inert={captured}>
            <LaboratoryOverview stage={mission.stage} elementDiscovered={mission.elementDiscovered === true} badges={mission.badges}
-             captured={captured} edithUnlocked={mission.edithUnlocked}>{missionSummary}</LaboratoryOverview>
+             cleanSlateComplete={readProgress(mission.missionRun).state.complete} captured={captured} edithUnlocked={mission.edithUnlocked}>{missionSummary}</LaboratoryOverview>
          </div>
+       )}
+       {mission && isCleanSlate && !captured && !recovery && (
+         mission.stage >= 7
+           ? <CleanSlate key={mission.missionRun} mission={mission.missionRun} />
+           : <main><h1>Clean Slate / DUM-E</h1><p>Панель откроется после восстановления JARVIS.</p><a href="/">В лабораторию</a></main>
        )}
        {captured && <UltronTerminal elapsed={elapsed} finished={!playing} />}
        {recovery && (
@@ -190,3 +198,6 @@ const isArchive = location.pathname === '/archive';
 if (isArchive) document.title = 'Архив проектов основателя | SURKOV INDUSTRIES';
 const isDevelopment = location.pathname === '/development';
 if (isDevelopment) document.title = 'Текущая разработка | SURKOV INDUSTRIES';
+
+const isCleanSlate = location.pathname === '/clean-slate';
+if (isCleanSlate) document.title = 'Clean Slate / DUM-E | SURKOV INDUSTRIES';

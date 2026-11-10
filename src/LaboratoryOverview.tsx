@@ -7,13 +7,14 @@ export const badgeNames = ['GENIUS / Гений', 'BILLIONAIRE / Биллион�
 
 const greeting = 'Добро пожаловать, мистер Сурков. Сканирование дугового реактора завершено. Лаборатория открыта.';
 
-export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured, edithUnlocked}: {
+export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured, edithUnlocked, cleanSlateComplete}: {
   stage?: number;
   elementDiscovered: boolean;
   edithUnlocked: boolean;
   badges?: number;
   children: ReactNode;
   captured?: boolean;
+  cleanSlateComplete?: boolean;
 }) {
   const [scanState, setScan] = useState<'ready' | 'scanning' | 'done'>('ready');
   const scan = captured ? 'done' : scanState;
@@ -91,6 +92,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
           <section className="lab-panel" aria-labelledby="founder-achievements">
             <h2 id="founder-achievements">Личные достижения</h2>
             <ul className="achievement-list">
+              {cleanSlateComplete && <li><strong>Протокол Clean Slate</strong><p>Дамми восстановил аварийную шину. Заражённые костюмы выведены из строя.</p></li>}
               <li><ProjectIllustration project="research" /><strong>Исследовательская программа</strong><p>Текст диссертации подготовлен.</p></li>
               <li><ProjectIllustration project="graduate" /><strong>Аспирантура</strong><p>Аспирантура окончена.</p></li>
               <li><ProjectIllustration project="algorithms" /><strong>Алгоритмическая школа</strong><p>4 из 13 стажёров завершили первый раунд и повысили рейтинг на Codeforces.</p></li>
