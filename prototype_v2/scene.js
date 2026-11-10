@@ -46,6 +46,58 @@ const buildingMeshes=new Map(), edgeMeshes=new Map(), omegaMarkers=[];
 let stage=1, selected=new Set(IDs), activeRoute='main', mainPath=['B'], reservePath=['B'];
 let showCommunications=true, showCalibration=false, showStvor=false;
 let targetViewingDirection=null, stvorGroup=null, projectionGroup=null;
+const atomCenter = new THREE.Vector3(0,2.55,0);
+let atom = null, assembly = null;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const dummyFinds = [
+  [
+    ['Гайка без болта', 'Дамми считает, что болт просто опаздывает.'],
+    ['Квитанция из карусели', 'Дамми купил билет на один оборот и запросил второй круг.', 'Других соединений между оставшимися зданиями нет.'],
+    ['Магнит с холодильника', 'Дамми пытался прикрепить его к макету. Прикрепился сам.'],
+  ],
+  [
+    ['Подгоревшая прихватка', 'Дамми объявил её образцом термостойкости.', 'Документ 02. Проверьте задержку каждого кабеля отдельно.'],
+    ['Кухонный таймер', 'Дамми засёк импульс и заодно поставил макароны.'],
+  ],
+  [
+    ['Перископ из трубочек', 'Через него отлично видно внутреннюю сторону трубочки.'],
+    ['Бумажный транспортир', 'Дамми пытался измерить им собственный энтузиазм.', 'За каждый такт разницы поднимайте линию взгляда ещё на 6° над горизонтом.'],
+    ['Очки с одной линзой', 'Дамми называет их биноклем с экономией бюджета.'],
+    ['Шарик из фольги', 'Дамми представил запасной атом. При ближайшем осмотре это обёртка от конфеты.'],
+  ],
+];
+const dummyCounts = [0,0,0];
+
+function updateDummy() {
+  const index = stage - 1;
+  const finds = dummyFinds[index];
+  $('dummyStation').classList.toggle('hide', !finds);
+  if (!finds) return;
+  const count = dummyCounts[index];
+  const items = $('dummyItems');
+  items.replaceChildren();
+  for (const [title, description, hint] of finds.slice(0,count)) {
+    const item = document.createElement('li');
+    const name = document.createElement('strong');
+    name.textContent = title;
+    item.append(name, description);
+    if (hint) {
+      const note = document.createElement('small');
+      note.textContent = hint;
+      item.append(note);
+    }
+    items.append(item);
+  }
+  $('dummyFind').disabled = count === finds.length;
+  $('dummyStatus').textContent = count === finds.length
+    ? 'Это всё, что нашёл Дамми на этом этапе.'
+    : `Найдено ${count} из ${finds.length}`;
+}
+$('dummyFind').addEventListener('click', () => {
+  dummyCounts[stage - 1]++;
+  updateDummy();
+});
 
 function meshBox(w,h,d, material, x,y,z, parent=scene) {
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
@@ -183,7 +235,7 @@ function updateView(){
   }
   for(const mark of omegaMarkers)mark.visible=showCalibration&&stage===2;
   if(stvorGroup) stvorGroup.visible=stage>=3&&showStvor;
-  if(projectionGroup) projectionGroup.visible=stage>=3;
+  if(projectionGroup) projectionGroup.visible=stage===3;
   $('visibleCount').textContent=String(selected.size);
   updateChips();updateRoutesDisplay();
 }
@@ -243,6 +295,7 @@ function isValidTopology(){
   return new Set(bridges.flatMap(e=>[e.a,e.b])).size===4;
 }
 function stepDisplay(){
+  updateDummy();
   for(let n=1;n<=3;n++){
     const el=$(`step${n}`);el.classList.toggle('active',stage===n);el.classList.toggle('done',stage>n);
   }
@@ -340,12 +393,12 @@ function setupProjection(){
   const horizontal=new THREE.Vector3().crossVectors(towardCenter,new THREE.Vector3(0,1,0)).normalize();
   const vertical=new THREE.Vector3().crossVectors(horizontal,towardCenter).normalize();
   projectionGroup=new THREE.Group();scene.add(projectionGroup);
-  const centerWorld=new THREE.Vector3(0,2.55,0);
-  const pt=(u,v,depth)=>centerWorld.clone().addScaledVector(horizontal,u).addScaledVector(vertical,v).addScaledVector(targetViewingDirection,depth);
+  const pt=(u,v,depth)=>atomCenter.clone().addScaledVector(horizontal,u).addScaledVector(vertical,v).addScaledVector(targetViewingDirection,depth);
   const draw=(coords,depth,color,radius=.045)=>{
     const points=coords.map(([u,v])=>pt(u,v,depth));
     const curve=new THREE.CatmullRomCurve3(points);
     const shape=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,coords.length*4),radius,8,false),new THREE.MeshBasicMaterial({color}));
+    shape.userData.depth = depth;
     projectionGroup.add(shape);return shape;
   };
   for(let i=0;i<3;i++){
@@ -362,23 +415,61 @@ function setupProjection(){
   // thin depth rays give the scene extra holographic context, without revealing an outline from other angles
   const baseM=mat(0x72ced0,{emissive:0x347d7e,emissiveIntensity:.5});
   for(const [u,v,d] of [[1.42,0,1.4],[0,1.42,-1.8],[-1.42,0,.3]]){
-    const marker=new THREE.Mesh(new THREE.IcosahedronGeometry(.07,0),baseM);marker.position.copy(pt(u,v,d));projectionGroup.add(marker);
+    const marker=new THREE.Mesh(new THREE.IcosahedronGeometry(.07,0),baseM);marker.position.copy(pt(u,v,d));marker.userData.depth=d;projectionGroup.add(marker);
   }
   stvorGroup.visible=showStvor;
   projectionGroup.visible=true;
 }
 $('checkProjection').addEventListener('click',()=>{
-  if(!targetViewingDirection)return;
+  if(!targetViewingDirection || stage!==3 || assembly)return;
   const offset=camera.position.clone().sub(controls.target).normalize();
   const delta=Math.acos(THREE.MathUtils.clamp(offset.dot(targetViewingDirection),-1,1));
   if(delta>THREE.MathUtils.degToRad(6)){
     setStatus(`Фрагменты ещё не совпадают. Проверьте сторону наблюдения, перпендикуляр к створу и угол возвышения. Ориентация камеры отличается от расчётной.`, 'warn');return;
   }
-  const direction=targetViewingDirection.clone();const aim=new THREE.Vector3(0,1.8,0);
-  controls.target.copy(aim);camera.position.copy(aim).addScaledVector(direction,35);camera.zoom=1;camera.updateProjectionMatrix();controls.update();
+  assembly = {
+    start: performance.now(),
+    from: camera.position.clone().sub(controls.target),
+    turn: new THREE.Quaternion().setFromUnitVectors(offset,targetViewingDirection),
+    aim: controls.target.clone(),
+    zoom: camera.zoom,
+    positions: projectionGroup.children.map(part => part.position.clone()),
+  };
+  controls.enabled = false;
+  $('checkProjection').disabled = true;
+  setStatus('Проекция подтверждена. Собираем атом…','good');
+  if (reduceMotion) animateAssembly(Infinity);
+});
+
+function animateAssembly(time) {
+  const elapsed = time - assembly.start;
+  const align = THREE.MathUtils.smoothstep(elapsed,0,580);
+  const merge = THREE.MathUtils.smoothstep(elapsed,580,1380);
+  const turn = new THREE.Quaternion().slerp(assembly.turn,align);
+  controls.target.copy(assembly.aim).lerp(atomCenter,align);
+  camera.position.copy(assembly.from).applyQuaternion(turn).add(controls.target);
+  camera.zoom = THREE.MathUtils.lerp(assembly.zoom,2.1,align);
+  camera.updateProjectionMatrix();
+  projectionGroup.children.forEach((part,index) => {
+    part.position.copy(assembly.positions[index]).addScaledVector(targetViewingDirection,-part.userData.depth*merge);
+  });
+  if (merge < 1) return;
+
+  atom = new THREE.Group();
+  atom.position.copy(atomCenter);
+  for (const [index,color] of [0x65e8e1,0xa4cbff,0xffd28a].entries()) {
+    const orbit = new THREE.Mesh(new THREE.TorusGeometry(1.35,.045,8,72),new THREE.MeshBasicMaterial({color}));
+    orbit.rotation.set(Math.PI/3,index*Math.PI/3,index*.75);
+    atom.add(orbit);
+  }
+  atom.add(new THREE.Mesh(new THREE.IcosahedronGeometry(.36,1),mat(0xffd28a,{emissive:0x815022})));
+  scene.add(atom);
+  assembly = null;
+  controls.enabled = true;
+  $('checkProjection').disabled = false;
   stage=4;showStvor=false;stepDisplay();updateView();
   setStatus('СТРУКТУРА ПОДТВЕРЖДЕНА. Нулевой элемент разблокирован.','good');
-});
+}
 const hints=[
   'Подсказка 1. Найдите середины двух переходов. Отрезок между ними — створ. Горизонтальное направление взгляда должно быть перпендикулярно створу, а не совпадать с ним.',
   'Подсказка 2. Выберите из двух перпендикулярных направлений то, которое смотрит на установку со стороны фабрики B. Угол поднимайте от горизонта.',
@@ -386,6 +477,15 @@ const hints=[
 ];
 for(let n=1;n<=3;n++)$(`hint${n}`).addEventListener('click',()=>{$('projectionHint').textContent=hints[n-1];});
 function resetAll(){
+  assembly = null;
+  controls.enabled = true;
+  $('checkProjection').disabled = false;
+  dummyCounts.fill(0);
+  if (atom) {
+    scene.remove(atom);
+    atom.children.forEach(part => {part.geometry.dispose();part.material.dispose();});
+    atom = null;
+  }
   stage=1;selected=new Set(IDs);mainPath=['B'];reservePath=['B'];activeRoute='main';showCommunications=true;showCalibration=false;showStvor=false;
   if(stvorGroup){scene.remove(stvorGroup);stvorGroup=null;}
   if(projectionGroup){scene.remove(projectionGroup);projectionGroup=null;}
@@ -427,5 +527,9 @@ function resize(){
 }
 window.addEventListener('resize',resize);
 resize();stepDisplay();updateView();
-function loop(){controls.update();renderer.render(scene,camera);requestAnimationFrame(loop);}
+function loop(time=performance.now()){
+  if (assembly) animateAssembly(time);
+  if (atom && !reduceMotion) atom.rotation.y = time*.0004;
+  controls.update();renderer.render(scene,camera);requestAnimationFrame(loop);
+}
 loop();
