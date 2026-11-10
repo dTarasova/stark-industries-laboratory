@@ -108,10 +108,10 @@ export function CleanSlate({mission}: {mission: number}) {
             <button disabled={state.complete} onClick={() => command('power')}>{state.power} → {state.power === 'MAIN' ? 'BACKUP' : 'MAIN'}</button>
             <button disabled={state.complete} onClick={() => command('hatch')}>{state.open ? 'Закрыть кассету' : 'Открыть кассету'}</button>
             <button disabled={state.complete} onClick={() => command('rotate')}>Повернуть изолятор</button>
-            <button disabled={state.complete} onClick={() => command('key')}>Повернуть ключ Clean Slate</button>
+            
           </div>
-          <p>Питание <strong>{state.power}</strong> · Кассета {state.open ? 'открыта' : 'закрыта'}</p>
-          <div className="slate-workbench">
+          <p className="slate-power">Питание <strong>{state.power}</strong> · Кассета {state.open ? 'открыта' : 'закрыта'}</p>
+          <p className="slate-instruction">Выберите кассету — Дамми переместит её в соседний свободный отсек.</p><div className="slate-workbench">
             <div className="slate-grid" role="group" aria-label="Шесть отсеков коммутационной шины">
               {state.modules.map((module, index) => {
                 const source = motion?.action;
@@ -142,11 +142,12 @@ export function CleanSlate({mission}: {mission: number}) {
                 </div>
               )}
             </div>
-            <div key={motion?.id} className={motion ? 'slate-motion' : undefined}>
+            <div className={motion ? 'slate-robot slate-motion' : 'slate-robot'}>
               <Dummy />
             </div>
           </div>
           <p className="slate-status" role="status">{message && <><strong>JARVIS</strong> · {message}</>}</p>
+          <div className="slate-activation"><div><h3>Запуск Clean Slate</h3><p>После сборки закройте кассету и верните основное питание.</p></div><button disabled={state.complete} onClick={() => command('key')}>Повернуть ключ Clean Slate</button></div>
           {storageFailed && <p role="alert">Браузер не сохранил прогресс. Оставьте страницу открытой, чтобы продолжить.</p>}
           <div className="slate-controls">
             <button disabled={!history.length} onClick={undo}>Отменить действие</button>
@@ -165,5 +166,6 @@ export function CleanSlate({mission}: {mission: number}) {
     </main>
   );
 }
+
 
 
