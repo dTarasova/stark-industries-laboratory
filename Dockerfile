@@ -5,6 +5,7 @@ RUN npm ci
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 COPY prototype ./prototype
+COPY prototype_v2/index.html prototype_v2/scene.js prototype_v2/puzzle_data.json ./prototype_v2/
 RUN npm run build
 COPY server.mjs server.test.mjs element.test.mjs clean-slate.test.mjs ./
 RUN npm test

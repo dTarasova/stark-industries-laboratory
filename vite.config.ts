@@ -2,4 +2,5 @@ import {defineConfig} from 'vite';
 
 export default defineConfig({
   server:{proxy:{'/api':'http://127.0.0.1:3000'}},
+  build:{rollupOptions:{input:['index.html','prototype_v2/index.html']}},
 });

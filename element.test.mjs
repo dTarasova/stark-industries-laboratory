@@ -1,19 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OrthographicCamera, Vector3 } from 'three';
-import { buildings, candidatePartitions, visibleLinks } from './src/element/layout.ts';
+import { archiveCandidates, bridgeMidpoints, buildings, candidatePartitions, findCycles, links, matchesTopology, topologyCandidates, visibleLinks } from './src/element/layout.ts';
 import {
-  createElement, fragments, freshAttempt, matchesSelection, projectionRelations, targetDirection, toggleBuilding,
+  confirmAttempt, createElement, fragments, freshAttempt, matchesSelection, projectionRelations, recordExclusion, targetDirection, toggleBuilding, verifiedExclusions,
 } from './src/element/puzzle.ts';
 
 const passes = rules => Object.values(rules).every(Boolean);
 
-test('все восьмёрки и разбиения дают ровно один ответ', () => {
+test('перебор всех восьмёрок даёт четыре топологии и один архивный ответ', () => {
   const accepted = [];
+  const topologies = [];
   let counted = 0;
   function visit(index, chosen) {
     if (chosen.length === 8) {
       counted++;
+      if (matchesTopology(new Set(chosen))) topologies.push(chosen.join(''));
       if (matchesSelection(new Set(chosen))) accepted.push(chosen.join(''));
       return;
     }
@@ -23,12 +25,71 @@ test('все восьмёрки и разбиения дают ровно оди
   }
   visit(0, []);
   assert.equal(counted, 125970);
-  assert.equal(accepted.length, 1);
-  assert.equal(candidatePartitions.filter(({ rules }) => passes(rules)).length, 1);
-  for (const rule of ['transitionCount', 'factoryRoute', 'matchingOrder', 'differentRoofs']) {
-    assert.ok(candidatePartitions.some(({ rules }) =>
-      !rules[rule] && Object.entries(rules).every(([key, ok]) => key === rule || ok)));
+  assert.deepEqual(topologies, ['ABCDGHIJ', 'ABCDGIJK', 'ABDFGHIJ', 'ACDEGHIJ']);
+  assert.deepEqual(accepted, ['ABCDGHIJ']);
+  const conditions = ['factoryRoute', 'matchingOrder', 'differentRoofs'];
+  let remaining = topologyCandidates;
+  for (const [index, condition] of conditions.entries()) {
+    assert.equal(topologyCandidates.filter(({ rules }) => !rules[condition]).length, 1);
+    remaining = remaining.filter(({ rules }) => rules[condition]);
+    assert.equal(remaining.length, 3 - index);
   }
+});
+
+test('граф содержит индуцированные циклы и переходы с разными концами', () => {
+  assert.equal(buildings.map(site => site.id).join(''), 'ABCDEFGHIJKLMNOPQRST');
+  const edges = links.map(pair => [...pair].sort().join(''));
+  assert.equal(new Set(edges).size, links.length);
+  assert.ok(links.every(pair => /^[A-T]{2}$/.test(pair) && pair[0] !== pair[1]));
+  const cycles = findCycles();
+  assert.equal(new Set(cycles.map(loop => loop.map(site => site.id).sort().join(''))).size, cycles.length);
+  for (const cycle of cycles) {
+    assert.equal(new Set(cycle).size, 4);
+    assert.equal(visibleLinks(new Set(cycle.map(site => site.id))).length, 4);
+  }
+  for (const { west, east, bridges, key } of topologyCandidates) {
+    assert.equal(new Set([...west, ...east]).size, 8);
+    assert.equal(bridges.length, 2);
+    assert.equal(new Set(bridges.flat()).size, 4);
+    assert.equal(visibleLinks(new Set(key)).length, 10);
+  }
+  assert.ok(candidatePartitions.some(({ rules }) => !rules.transitionCount));
+  assert.equal(matchesTopology(new Set(['AB', 'B', 'C', 'D', 'G', 'H', 'I', 'J'])), false);
+});
+
+test('ложный вариант допускается в архив, подлинный проходит до открытия элемента', () => {
+  const initial = freshAttempt();
+  assert.equal(confirmAttempt(initial), initial);
+  const decoy = confirmAttempt({ ...initial, selected: [...'ABCDGIJK'] });
+  assert.equal(decoy.stage, 'archive');
+  assert.deepEqual(decoy.selected, [...'ABCDGIJK']);
+  assert.equal(confirmAttempt(decoy), decoy);
+  const corrected = toggleBuilding(toggleBuilding(decoy, 'K'), 'H');
+  assert.equal(confirmAttempt(corrected), corrected);
+  assert.equal(recordExclusion(decoy, 'factoryRoute'), decoy);
+  const noted = recordExclusion(decoy, 'matchingOrder');
+  assert.equal(recordExclusion(noted, 'matchingOrder'), noted);
+  const second = recordExclusion({ ...noted, selected: [...'ABDFGHIJ'] }, 'differentRoofs');
+  const third = recordExclusion({ ...second, selected: [...'ACDEGHIJ'] }, 'factoryRoute');
+  assert.deepEqual(verifiedExclusions([...third.exclusions, 'ABCDGHIJ', 'garbage']), third.exclusions);
+  const projection = confirmAttempt({ ...corrected, exclusions: third.exclusions });
+  assert.equal(projection.stage, 'projection');
+  assert.equal(confirmAttempt(projection), projection);
+  assert.equal(toggleBuilding(projection, 'A'), projection);
+  const complete = confirmAttempt(projection, passes(measuredAt(target)));
+  assert.equal(complete.stage, 'complete');
+  assert.deepEqual(complete.element, createElement());
+  assert.deepEqual(freshAttempt(complete.element).element, complete.element);
+});
+
+test('направление перпендикулярно створу, смотрит со стороны фабрики и поднято на 30°', () => {
+  const [a, b] = bridgeMidpoints(archiveCandidates[0]);
+  const [x, y, z] = targetDirection;
+  const plant = buildings.find(site => site.id === 'G');
+  assert.ok(Math.abs(x * (b.x - a.x) + z * (b.z - a.z)) < 1e-10);
+  assert.ok(x * (plant.x - a.x) + z * (plant.z - a.z) > 0);
+  assert.ok(Math.abs(y - 0.5) < 1e-10);
+  assert.ok(Math.abs(Math.hypot(x, y, z) - 1) < 1e-10);
 });
 
 function measuredAt(direction, zoom = 1, pan = new Vector3(), mirror = false) {

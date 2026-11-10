@@ -1,16 +1,17 @@
-import { buildings } from './layout.ts';
+import { archiveCandidates, bridgeMidpoints, buildings, factory, matchesSelection, matchesTopology, topologyCandidates } from './layout.ts';
 export { buildings, matchesSelection } from './layout.ts';
 
 export type Point = [number, number, number];
 export type ScreenPoint = [number, number];
 export type ElementModel = { parts: { radius: number; color: number; center: Point }[] };
-export type Attempt = { selected: string[]; stage: 'selection' | 'projection' | 'complete'; element?: ElementModel };
+export type Attempt = { selected: string[]; stage: 'selection' | 'archive' | 'projection' | 'complete'; element?: ElementModel; exclusions?: string[]; firstHypothesis?: string[] };
 
 export const freshAttempt = (element?: ElementModel): Attempt => ({
   selected: buildings.map(site => site.id), stage: 'selection', element,
 });
 export const toggleBuilding = (attempt: Attempt, id: string): Attempt => {
-  if (attempt.stage !== 'selection') return attempt;
+  if ((attempt.stage !== 'selection' && attempt.stage !== 'archive') ||
+    !buildings.some(site => site.id === id)) return attempt;
   const selected = attempt.selected.includes(id)
     ? attempt.selected.filter(label => label !== id)
     : [...attempt.selected, id];
@@ -18,7 +19,56 @@ export const toggleBuilding = (attempt: Attempt, id: string): Attempt => {
 };
 
 
-export const targetDirection: Point = [0.48, 0.48, Math.sqrt(1 - 2 * 0.48 ** 2)];
+export const archiveRules = ['factoryRoute', 'matchingOrder', 'differentRoofs'] as const;
+export type ArchiveRule = typeof archiveRules[number];
+export const requiredExclusions = topologyCandidates.length - archiveCandidates.length;
+
+export function verifiedExclusions(keys: unknown): string[] {
+  if (!Array.isArray(keys)) return [];
+  return topologyCandidates.filter(candidate => keys.includes(candidate.key) &&
+    archiveRules.some(rule => !candidate.rules[rule])).map(candidate => candidate.key);
+}
+
+export function recordExclusion(attempt: Attempt, rule: ArchiveRule): Attempt {
+  if (attempt.stage !== 'archive') return attempt;
+  const selected = new Set(attempt.selected);
+  if (!matchesTopology(selected)) return attempt;
+  const key = [...selected].sort().join('');
+  const candidate = topologyCandidates.find(entry => entry.key === key);
+  if (!candidate || candidate.rules[rule] || attempt.exclusions?.includes(key)) return attempt;
+  return { ...attempt, exclusions: [...(attempt.exclusions ?? []), key] };
+}
+
+export function confirmAttempt(attempt: Attempt, aligned = false): Attempt {
+  const selected = new Set(attempt.selected);
+  if (attempt.stage === 'selection' && matchesTopology(selected)) {
+    return { ...attempt, stage: 'archive', firstHypothesis: attempt.selected };
+  }
+  if (attempt.stage === 'archive' && matchesSelection(selected) &&
+    verifiedExclusions(attempt.exclusions).length === requiredExclusions) return { ...attempt, stage: 'projection' };
+  if (attempt.stage === 'projection' && aligned && matchesSelection(selected)) {
+    return { ...attempt, stage: 'complete', element: createElement() };
+  }
+  return attempt;
+}
+
+export const observationElevation = 30;
+
+export function observationDirection(candidate: typeof archiveCandidates[number]): Point {
+  const [first, second] = bridgeMidpoints(candidate);
+  const plant = candidate.east.find(site => site.id === factory);
+  if (!first || !second || !plant) throw new Error('Нет опор для направления наблюдения');
+  const x = second.z - first.z;
+  const z = first.x - second.x;
+  const length = Math.hypot(x, z);
+  const side = x * (plant.x - first.x) + z * (plant.z - first.z);
+  if (!length || !side) throw new Error('Неоднозначная сторона наблюдения');
+  const elevation = observationElevation * Math.PI / 180;
+  const horizontal = Math.sign(side) * Math.cos(elevation) / length;
+  return [x * horizontal, Math.sin(elevation), z * horizontal];
+}
+
+export const targetDirection = observationDirection(archiveCandidates[0]);
 const [tx, ty, tz] = targetDirection;
 const horizontal = Math.hypot(tx, tz);
 const right: Point = [tz / horizontal, 0, -tx / horizontal];

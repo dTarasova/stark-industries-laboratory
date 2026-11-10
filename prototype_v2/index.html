@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>SURKOV INDUSTRIES — Проект 0</title>
+  <style>
+    :root { color-scheme:dark; --bg:#10141e; --surface:#1a202d; --surface2:#222d3d; --border:#35465a; --text:#f2f4f8; --muted:#a4b2c2; --blue:#67b9f7; --teal:#64e6d3; --orange:#f8b764; --danger:#ff9094; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button { font:inherit; cursor:pointer; }
+    button:focus-visible {outline:2px solid var(--teal);outline-offset:3px}
+    button:disabled {cursor:not-allowed;opacity:.42}
+    header {max-width:1600px;margin:auto;padding:23px 26px 12px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+    .eyebrow {color:var(--teal);font-size:11px;letter-spacing:.23em;font-weight:800;}
+    h1 {font-size:clamp(22px,2.5vw,32px);letter-spacing:.04em;margin:7px 0 4px;font-weight:780;}
+    .subtitle {font-size:13px;color:var(--muted);margin:0;line-height:1.5;}
+    .reset {border:1px solid var(--border);background:transparent;color:var(--muted);padding:10px 14px;border-radius:9px;white-space:nowrap;}
+    .reset:hover {color:var(--text);background:#202c3b}
+    .steps {max-width:1600px;margin:0 auto 12px;padding:0 26px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .step {background:#161d28;border:1px solid #2f4052;border-radius:9px;padding:10px 14px;display:flex;gap:10px;align-items:center;font-size:12px;color:#8697a9;}
+    .step em {font-style:normal;font-size:10px;color:#9daabd;border:1px solid #435268;border-radius:5px;padding:3px 5px;}
+    .step.active{border-color:#3f8eaa;background:#192f3b;color:#eaf7fb}
+    .step.done{border-color:#356762;color:#a5d6cf}
+    main {max-width:1600px;padding:0 26px 28px;margin:auto;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(335px,.9fr);gap:14px;}
+    .scene-wrap {border:1px solid #3b5166;border-radius:16px;overflow:hidden;background:#171c25;position:relative;min-height:650px;box-shadow:0 12px 34px #0002}
+    #viewport {width:100%;height:650px;display:block;touch-action:none;cursor:grab;}
+    .hud {position:absolute;z-index:2;left:18px;top:16px;pointer-events:none;max-width:74%;}
+    .hud .meta{font-size:10px;color:#81c5d3;letter-spacing:.15em;font-weight:800;margin-bottom:6px}
+    .hud .title{font-size:18px;font-weight:760;text-shadow:0 2px 10px #090e17;}
+    .hud .detail{font-size:12px;line-height:1.5;color:#becddc;margin-top:6px;text-shadow:0 1px 4px #070c12;}
+    .scene-actions {display:flex;flex-wrap:wrap;gap:6px;position:absolute;top:14px;right:14px;z-index:3;justify-content:flex-end;max-width:60%;}
+    .scene-actions button {font-size:11px;background:#222e3ede;border:1px solid #455a70;color:#d6e6f2;border-radius:7px;padding:7px 8px;backdrop-filter:blur(6px);}
+    .scene-actions button.active{border-color:var(--teal);color:var(--teal)}
+    .scene-footer{position:absolute;bottom:0;left:0;right:0;padding:15px 18px;background:linear-gradient(transparent,#0d141de8);display:flex;align-items:end;justify-content:space-between;gap:14px;pointer-events:none}
+    .scene-footer span{font-size:11px;color:#cbd6e2;line-height:1.5;max-width:80%}
+    .scene-footer strong{font-size:11px;color:#6fe0ce;white-space:nowrap}
+    aside {display:flex;flex-direction:column;gap:12px;min-width:0;}
+    .panel{padding:19px 18px;border:1px solid #344558;border-radius:13px;background:var(--surface)}
+    .panel h2{margin:0 0 10px;font-size:18px;font-weight:740}
+    .panel h3{margin:0 0 8px;font-size:13px;letter-spacing:.04em;font-weight:740}
+    .panel p{margin:0 0 11px;line-height:1.55;font-size:12px;color:#c6d2dc}
+    .panel p:last-child{margin-bottom:0}
+    .panel small{color:#91a3b5;line-height:1.5}
+    .panel .condition {padding-left:17px;margin:9px 0 0;color:#bfd0db;font-size:12px;line-height:1.6}
+    .panel .condition li{padding-bottom:5px}
+    .mono {font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+    .line{height:1px;background:#344558;margin:14px 0}
+    .muted {color:#91a3b4}
+    .count {margin:0 0 12px;font-size:12px;color:#a2b5c5}
+    .count b{font-size:18px;color:#fff}
+    .chips{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px;}
+    .chip{padding:8px 1px;min-width:0;text-align:center;border:1px solid #435b70;color:#dae4ec;border-radius:7px;background:#27394a;font-size:12px;font-weight:800}
+    .chip.off{color:#72879a;border-color:#313d4c;background:#151c27;text-decoration:line-through}
+    .chip.selected{border-color:#69e0ce;color:#9af2e6;background:#224542}
+    .chip:hover{border-color:#acc8dc}
+    .primary{width:100%;border:none;border-radius:9px;background:linear-gradient(120deg,#43b6a7,#68b0ec);color:#071821;font-size:13px;font-weight:800;padding:12px 15px;margin-top:11px;}
+    .primary:hover:not(:disabled){filter:brightness(1.1)}
+    .secondary{border:1px solid #52647a;border-radius:8px;background:#25364b;color:#dce9f2;font-size:12px;font-weight:700;padding:9px 11px}
+    .secondary.active{background:#274c54;border-color:#66e1ce;color:#b2f4ed}
+    .route-controls{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0;}
+    .path{border:1px solid #334c61;background:#152534;border-radius:8px;padding:8px 11px;margin-top:7px;font-size:12px;line-height:1.6;min-height:39px;}
+    .path strong{display:inline-block;width:84px}
+    .path.main{border-left:3px solid #55c9f6}
+    .path.reserve{border-left:3px solid #efb35d}
+    .status{border:1px solid #435b6d;border-radius:9px;background:#192938;color:#d0dfeb;padding:11px 12px;font-size:12px;line-height:1.55;white-space:pre-wrap;}
+    .status.warn {border-color:#885458;background:#362a34;color:#ffc1be}
+    .status.good {border-color:#347f6d;background:#18352f;color:#a8f5da}
+    details{border:1px solid #384f65;background:#1b2936;border-radius:8px;margin:8px 0;padding:9px 11px}
+    details summary{font-weight:720;font-size:12px;line-height:1.4;cursor:pointer;color:#dfeaf2}
+    details p{margin:9px 0 3px !important;font-size:12px !important;line-height:1.6 !important;color:#c4d6e5 !important;}
+    details .tag{font-size:10px;color:#85c7c7;font-weight:700;letter-spacing:.1em;margin-top:9px}
+    .route-legend{font-size:11px;color:#9aafc2;line-height:1.6}
+    .success{padding:13px;border:1px solid #36836f;background:#193b34;border-radius:9px;color:#a3f6dc;font-size:14px;font-weight:750;text-align:center}
+    .hide{display:none !important;}
+    .footnote{max-width:1600px;padding:0 26px 24px;margin:auto;color:#6f8398;font-size:11px;line-height:1.6}
+    @media(max-width:960px){main{grid-template-columns:1fr}.scene-wrap{min-height:520px}#viewport{height:520px}aside{display:block}aside>.panel{margin-bottom:12px}.hud .detail{max-width:330px} }
+    @media(max-width:620px){header{padding:18px 12px 12px}main{padding:0 12px 18px}.steps{padding:0 12px;gap:5px}.step{font-size:10px;padding:8px;gap:5px}.step em{display:none}.scene-wrap{min-height:440px}#viewport{height:440px}.hud{left:10px;top:13px;max-width:50%}.hud .title{font-size:14px}.hud .detail{display:none}.scene-actions{right:7px;top:7px;max-width:58%}.scene-actions button{padding:6px;font-size:10px}.scene-footer{padding:10px}.reset{font-size:10px;padding:8px}.chips{grid-template-columns:repeat(10,minmax(0,1fr))}.panel{padding:15px}.footnote{padding:0 12px 18px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div><div class="eyebrow">STARK ARCHIVE / SURKOV INDUSTRIES</div><h1>Проект 0 <span style="color:#73ddcb">/</span> Нулевой элемент</h1><p class="subtitle">Инженерный архив Говарда Старка • экспериментальная реконструкция</p></div>
+    <button id="resetAll" class="reset" type="button">↺ Новая попытка</button>
+  </header>
+  <nav class="steps" aria-label="Этапы задания">
+    <div id="step1" class="step active"><em>01</em><span>Восстановление топологии</span></div>
+    <div id="step2" class="step"><em>02</em><span>Энергетические маршруты</span></div>
+    <div id="step3" class="step"><em>03</em><span>Пространственная проекция</span></div>
+  </nav>
+  <main>
+    <div class="scene-wrap">
+      <canvas id="viewport" aria-label="Интерактивная 3D-модель комплекса"></canvas>
+      <div class="hud"><div class="meta">SURKOV INDUSTRIES • МАКЕТ КОМПЛЕКСА</div><div id="hudTitle" class="title">Архивная застройка / 20 сооружений</div><div id="hudDetail" class="detail">Перетаскивайте для вращения · колесо для масштабирования · нажмите на здание для выбора</div></div>
+      <div class="scene-actions">
+        <button id="topView" type="button">Вид сверху</button>
+        <button id="defaultView" type="button">Общий ракурс</button>
+        <button id="toggleComm" class="active" type="button">Коммуникации</button>
+        <button id="toggleCalibration" type="button" class="hide">Калибровка</button>
+        <button id="toggleStvor" type="button" class="hide">Створ переходов</button>
+      </div>
+      <div class="scene-footer"><span id="sceneCaption">Буквы над зданиями соответствуют архивным обозначениям. Фабрика и приёмник отмечены отдельно.</span><strong id="sceneMode">РЕЖИМ: ОТБОР</strong></div>
+    </div>
+    <aside>
+      <section id="panelStage1" class="panel">
+        <h2>01 / Восстановите комплекс</h2>
+        <p>Из двадцати сооружений только <b>восемь</b> входили в исходную установку. Оставьте два непересекающихся кольца по четыре здания: вокруг <b>карусели</b> и <b>качелей</b>.</p>
+        <ul class="condition"><li>Внутри кольца соседние кабели сходятся в одном здании. К зданию кольца также может подходить кабель из другого кольца.</li><li>Между кольцами должно быть ровно два кабеля. Они не должны сходиться в одном здании: у каждого кабеля своя пара зданий, всего четыре разных здания.</li><li>Других соединений между оставшимися зданиями нет.</li><li>В составе обязательно должны быть фабрика <b>B</b> и купольный приёмник <b>H ◉</b>.</li><li>Пересечения линий вне зданий не считаются соединениями.</li></ul>
+        <div class="line"></div>
+        <div class="count">Видимых сооружений: <b id="visibleCount">20</b> / 8</div>
+        <div id="buildingChips" class="chips"></div>
+        <button id="checkTopology" class="primary" type="button">Проверить топологию</button>
+        <p style="margin-top:11px;font-size:11px;color:#9caec1">Допустимая топология ещё не доказывает подлинность. В архиве встречалось несколько похожих проектов.</p>
+      </section>
+      <section id="panelStage2" class="panel hide">
+        <h2>02 / Восстановите маршруты</h2>
+        <p>Геометрия подтверждена, но исходный проект ещё не установлен. Откройте слой <b>«Калибровка»</b>: цифры — задержки кабелей в тактах, знак <b>Ω</b> — фазовый преобразователь.</p>
+        <details open><summary>Документ 01 · Протокол двойного импульса</summary><div class="tag">ИСПЫТАНИЕ №17</div><p>Два независимых канала от фабрики <b>B</b> до приёмника <b>H</b>. Они не имеют общих промежуточных зданий или кабелей. Каждый канал пересекает пространство между дворами ровно один раз, по кратчайшему доступному маршруту для своего перехода. Основной импульс приходит за <b>7 тактов</b>, резервный — <b>позднее</b>.</p></details>
+        <details><summary>Документ 02 · Акт тепловых испытаний</summary><div class="tag">ОТДЕЛ БЕЗОПАСНОСТИ</div><p>В рабочем проекте ни один кабель любого из каналов не имел задержку <b>6 тактов или более</b>. Проверяйте каждый участок отдельно, а не общую сумму задержек.</p></details>
+        <details><summary>Документ 03 · Ведомость фазового резонанса</summary><div class="tag">ЛИЧНЫЙ АРХИВ Г. СТАРКА</div><p>Станции с символом <b>Ω</b> — фазовые преобразователи. Их наличие на канале зависит от того, какие здания вошли в маршрут. Допускается <b>не более одного</b> преобразователя на канал. Два на одном канале вызывают резонанс даже через промежуточные здания.</p></details>
+        <div class="line"></div>
+        <h3>Отметьте два канала</h3>
+        <p>Выберите канал, затем последовательно нажимайте здания по его маршруту. Начало B задано автоматически. Повторное нажатие на предыдущее здание отменит последний шаг.</p>
+        <div class="route-controls"><button id="chooseMain" class="secondary active" type="button">● Основной</button><button id="chooseReserve" class="secondary" type="button">● Резервный</button><button id="clearRoute" class="secondary" type="button">Очистить маршрут</button></div>
+        <div class="path main"><strong>Основной</strong><span id="mainPath">B</span><div><small id="mainDelay">0 тактов</small></div></div>
+        <div class="path reserve"><strong>Резервный</strong><span id="reservePath">B</span><div><small id="reserveDelay">0 тактов</small></div></div>
+        <div class="route-legend" style="margin-top:10px">Неверную конфигурацию можно изменить: <button id="returnTopology" class="secondary" style="margin:5px 0" type="button">↶ Изменить здания</button></div>
+        <button id="checkArchive" class="primary" type="button">Проверить реконструкцию</button>
+      </section>
+      <section id="panelStage3" class="panel hide">
+        <h2>03 / Найдите проекцию</h2>
+        <p>Каналы синхронизированы. Пространственные фрагменты нового элемента проявились над комплексом, но не складываются в единую форму при произвольном ракурсе.</p>
+        <details open><summary>Оптический журнал · Запись 0</summary><p>Середины двух переходов определяют <b>створ</b>. Смотреть нужно перпендикулярно ему со стороны фабрики. За каждый такт разности задержек резервного и основного каналов угол наблюдения повышается на <b>6°</b> над горизонтом. Совместите все части единой структуры.</p></details>
+        <p>Включите «Створ переходов», при необходимости используйте «Вид сверху» для определения направления, затем вручную поверните модель.</p>
+        <div class="path">Основной: <b id="finalMainDelay">7</b> тактов · Резервный: <b id="finalReserveDelay">11</b> тактов<br><span class="muted">Рассчитайте возвышение камеры по архивной формуле.</span></div>
+        <button id="checkProjection" class="primary" type="button">Проверить проекцию</button>
+        <div class="route-controls"><button id="hint1" class="secondary" type="button">Подсказка 1</button><button id="hint2" class="secondary" type="button">Подсказка 2</button><button id="hint3" class="secondary" type="button">Подсказка 3</button></div>
+        <p id="projectionHint" class="muted"></p>
+      </section>
+      <section id="panelSuccess" class="panel hide"><div class="success">◇ НУЛЕВОЙ ЭЛЕМЕНТ ВОССТАНОВЛЕН ◇</div><h2 style="margin-top:16px">Архив Говарда Старка расшифрован</h2><p>Правильная восьмёрка зданий, энергетические маршруты и скрытая пространственная структура найдены. Данные переданы в лабораторию.</p><button id="restartSuccess" class="primary" type="button">Начать новую попытку</button></section>
+      <section class="panel"><h3>АРХИВНАЯ КОНСОЛЬ</h3><div id="status" role="status" aria-live="polite" class="status">Выберите здания на макете или в списке. Чтобы проследить коммуникации, используйте вид сверху.</div></section>
+    </aside>
+  </main>
+  <div class="footnote">Демонстрационная сцена Three.js. Данные логики находятся в puzzle_data.json; проверки воспроизводятся командой python validate_scene.py. Для загрузки ES-модулей и JSON откройте страницу через локальный HTTP-сервер. Нужен интернет для библиотеки Three.js с CDN.</div>
+  <script type="module" src="./scene.js"></script>
+</body>
+</html>

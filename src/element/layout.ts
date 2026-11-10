@@ -33,7 +33,7 @@ export const links = [
   'AB', 'BC', 'CD', 'DA', 'AE', 'EC', 'BF', 'FD',
   'GH', 'HI', 'IJ', 'JG', 'GK', 'KI',
   'BG', 'EG', 'CJ', 'FI', 'EK',
-  'AM', 'CM', 'MH', 'AL', 'LB', 'LD', 'LM', 'MN', 'ND', 'NO', 'OF', 'FP', 'PQ', 'IR', 'RS', 'ST', 'TK', 'HS',
+  'AM', 'FK', 'MH', 'AL', 'LB', 'LM', 'MN', 'ND', 'NO', 'OF', 'FP', 'PQ', 'IR', 'RS', 'ST', 'TK', 'HS',
 ];
 
 const edge = (a: string, b: string) => [a, b].sort().join('');
@@ -65,7 +65,7 @@ function inside(sites: Building[], point: PlanPoint) {
   return crossings % 2 === 1;
 }
 
-function findCycles() {
+export function findCycles() {
   const cycles: Building[][] = [];
   for (const a of buildings) for (const b of buildings) {
     if (b.id <= a.id || !connected(a, b)) continue;
@@ -99,7 +99,6 @@ function fenceCrossing(a: Building, b: Building) {
 
 
 const cycles = findCycles();
-const validSelections = new Set<string>();
 
 // Перебираем все простые индуцированные циклы, затем все допустимые пары.
 export const candidatePartitions = cycles.filter(loop => inside(loop, carousel)).flatMap(west =>
@@ -121,19 +120,36 @@ export const candidatePartitions = cycles.filter(loop => inside(loop, carousel))
     const rules = {
       transitionCount,
       factoryRoute,
-      roofTypes: Boolean(leftRoof && rightRoof),
       matchingOrder: Boolean(leftRoof && leftRoof === rightRoof),
       differentRoofs: bridges.every(([a, b]) => a.roof !== b.roof),
     };
     const key = [...west, ...east].map(site => site.id).sort().join('');
-    if (Object.values(rules).every(Boolean)) validSelections.add(key);
-    return [{ key, rules }];
+    return [{ key, west, east, bridges, rules }];
   }),
 );
 
-export function matchesSelection(selected: ReadonlySet<string>) {
-  return selected.size === 8 && validSelections.has([...selected].sort().join(''));
+
+export const topologyCandidates = candidatePartitions.filter(({ rules }) => rules.transitionCount);
+export const archiveCandidates = topologyCandidates.filter(({ rules }) =>
+  rules.factoryRoute && rules.matchingOrder && rules.differentRoofs);
+
+const buildingIds = new Set(buildings.map(({ id }) => id));
+function selectionKey(selected: ReadonlySet<string>) {
+  if (selected.size !== 8 || ![...selected].every(id => buildingIds.has(id))) return undefined;
+  return [...selected].sort().join('');
 }
+
+export function matchesTopology(selected: ReadonlySet<string>) {
+  const key = selectionKey(selected);
+  return topologyCandidates.some(candidate => candidate.key === key);
+}
+
+export function matchesSelection(selected: ReadonlySet<string>) {
+  return archiveCandidates.length === 1 && archiveCandidates[0].key === selectionKey(selected);
+}
+
+export const bridgeMidpoints = (candidate: typeof topologyCandidates[number]) =>
+  candidate.bridges.map(([a, b]) => ({ x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 }));
 
 export const visibleLinks = (selected: ReadonlySet<string>) =>
   links.filter(([a, b]) => selected.has(a) && selected.has(b));

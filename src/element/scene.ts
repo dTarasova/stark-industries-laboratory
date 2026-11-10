@@ -4,7 +4,7 @@ import {
   fragments, matchesProjection, structureCenter, targetDirection,
   type Attempt, type ElementModel, type ScreenPoint,
 } from './puzzle';
-import { buildings, carousel, factory, fence, links, swings, visibleLinks } from './layout';
+import { archiveCandidates, bridgeMidpoints, buildings, carousel, factory, fence, links, swings, visibleLinks } from './layout';
 
 const target = new THREE.Vector3(...targetDirection);
 const initialDirection = new THREE.Vector3(-0.4, 0.8, 1).normalize();
@@ -210,6 +210,16 @@ export function createScene(host: HTMLElement, onBuilding: (id?: string) => void
     expo.add(line, trees);
     return { pair, line, trees, markers };
   });
+  const survey = new THREE.Group();
+  const markers = bridgeMidpoints(archiveCandidates[0]).map(({ x, z }) => {
+    survey.add(mesh(new THREE.SphereGeometry(0.19), 0xffc479, x, 0.55, z));
+    return new THREE.Vector3(x, 0.55, z);
+  });
+  survey.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(markers),
+    new THREE.LineBasicMaterial({ color: 0xffc479 }),
+  ));
+  expo.add(survey);
   const pieces = new THREE.Group();
   const fragmentObjects = fragments.map(({ center, points }) => {
     const origin = new THREE.Vector3(...center);
@@ -244,9 +254,9 @@ export function createScene(host: HTMLElement, onBuilding: (id?: string) => void
     });
   }
 
-  function update(attempt: Attempt, layers: { roads: boolean; landscape: boolean; wires: boolean }, viewSaved: boolean, focusedBuilding?: string) {
+  function update(attempt: Attempt, layers: { roads: boolean; landscape: boolean; wires: boolean; survey: boolean }, viewSaved: boolean, focusedBuilding?: string) {
     currentStage = attempt.stage;
-    const transparent = currentStage !== 'selection';
+    const transparent = currentStage === 'projection' || currentStage === 'complete';
     const visible = new Set(attempt.selected);
     const showResult = Boolean(attempt.element && (viewSaved || currentStage === 'complete'));
     controls.minZoom = showResult ? 4 : 0.65;
@@ -271,7 +281,7 @@ export function createScene(host: HTMLElement, onBuilding: (id?: string) => void
     landscape.visible = layers.landscape && !transparent;
     pieces.visible = transparent;
     landmarks.visible = !transparent;
-    compass.visible = !transparent;
+    survey.visible = currentStage === 'projection' && layers.survey;
     const activeLinks = new Set(visibleLinks(visible));
     wires.forEach(({ pair, line, trees, markers }) => {
       trees.visible = !transparent && activeLinks.has(pair);
@@ -283,7 +293,7 @@ export function createScene(host: HTMLElement, onBuilding: (id?: string) => void
     for (const [id, shell] of shells) {
       shell.visible = visible.has(id);
       shell.traverse(object => {
-        if (object instanceof THREE.Sprite) object.visible = !transparent;
+        if (object instanceof THREE.Sprite) object.visible = !transparent || id === factory;
         if (object instanceof THREE.Mesh) {
           if (object.material instanceof THREE.MeshStandardMaterial) {
             object.material.emissive.setHex(!transparent && id === focusedBuilding ? 0x20505a : 0x000000);
@@ -334,7 +344,7 @@ export function createScene(host: HTMLElement, onBuilding: (id?: string) => void
     pointerStart = event.isPrimary && event.button === 0 ? { x: event.clientX, y: event.clientY } : undefined;
   };
   const pointerUp = (event: PointerEvent) => {
-    if (!pointerStart || currentStage !== 'selection' || showingResult) return;
+    if (!pointerStart || showingResult || (currentStage !== 'selection' && currentStage !== 'archive')) return;
     if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 5) return;
     const rect = canvas.getBoundingClientRect();
     ray.setFromCamera(new THREE.Vector2(
@@ -372,7 +382,13 @@ export function createScene(host: HTMLElement, onBuilding: (id?: string) => void
   });
 
   return {
-    update, measure, assemble,
+    update, measure, assemble, resetView,
+    planView() {
+      camera.position.copy(controls.target).add(new THREE.Vector3(0, 26, 1.05));
+      camera.zoom = 1;
+      camera.updateProjectionMatrix();
+      controls.update();
+    },
     reset() {
       animation = undefined;
       attemptView = undefined;
