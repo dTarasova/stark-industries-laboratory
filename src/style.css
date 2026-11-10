@@ -61,6 +61,7 @@ header a {
   text-wrap: balance;
 }
 
+main:not(:has(.reactor-visual))::before,
 .reactor-visual {
   --core: #8deaff;
   width: min(100%, 360px);
@@ -339,3 +340,18 @@ body:has(.takeover-overlay) { overflow: hidden; }
 .takeover-greeting { font-size: 18px; }
 }
 .takeover-terminal[data-arrival="true"] .takeover-progress { display: none; }
+
+/* Shared scene background; dedicated reactor scenes retain their own behavior. */
+main:not(:has(.reactor-visual)) { position:relative; isolation:isolate; }
+main:not(:has(.reactor-visual))::before {
+  content:'';
+  position:fixed;
+  z-index:-1;
+  pointer-events:none;
+  width:min(90vw,1100px);
+  max-width:none;
+  top:12vh;
+  left:50%;
+  transform:translateX(-50%);
+  opacity:.16;
+}

@@ -85,20 +85,8 @@ export function CleanSlate({mission}: {mission: number}) {
     <main className="clean-slate">
       <header><span>SURKOV INDUSTRIES</span><a href="/">В лабораторию</a></header>
       <h1>Clean Slate / DUM-E</h1>
-      <p><strong>JARVIS · Аварийное обслуживание</strong></p>
-      <p>Сэр, Альтрон оставил резервный интерфейс в системе управления бронёй. Дистанционное переключение исключено. Дамми поможет восстановить локальную шину. Сохраните питание моего ядра, изолируйте заражённый модуль и установите односторонний барьер. Пожалуйста, не заставляйте Дамми импровизировать.</p>
-      <details className="slate-journal">
-        <summary>Открыть журнал обслуживания</summary>
-        <h2>Акт 47-B / Аварийная реконфигурация шины</h2>
-        <ol>
-          <li>В верхней цепи разместите силовой стабилизатор, изолятор и локальный инициатор по порядку.</li>
-          <li>Заражённый интерфейс поместите в левый нижний отсек. Средний нижний отсек связан с диагностикой ядра JARVIS и запрещён для заражённой кассеты.</li>
-          <li>Регистратор установите справа от карантина. Правый нижний отсек оставьте пустым.</li>
-          <li>Сигнал идёт по верхней цепи справа налево. Направьте стрелку изолятора по ходу сигнала.</li>
-          <li>Перейдите на резервное питание перед вскрытием кассеты. Верните основное питание после сборки и закрытия.</li>
-          <li>Сдвигайте по одной кассете в соседний по стороне пустой отсек.</li>
-        </ol>
-      </details>
+      <div className="slate-layout" data-complete={state.complete} data-power={state.power}>
+        <div key={motion?.id ?? 'idle'} className={motion ? 'reactor-visual slate-reactor slate-reactor-pulse' : 'reactor-visual slate-reactor'} aria-hidden="true" />
       {!panel && <button onClick={() => setPanel(true)}>Открыть панель Дамми</button>}
       {panel && (
         <section className="slate-panel" aria-labelledby="slate-panel-title">
@@ -142,9 +130,6 @@ export function CleanSlate({mission}: {mission: number}) {
                 </div>
               )}
             </div>
-            <div className={motion ? 'slate-robot slate-motion' : 'slate-robot'}>
-              <Dummy />
-            </div>
           </div>
           <p className="slate-status" role="status">{message && <><strong>JARVIS</strong> · {message}</>}</p>
           <div className="slate-activation"><div><h3>Запуск Clean Slate</h3><p>После сборки закройте кассету и верните основное питание.</p></div><button disabled={state.complete} onClick={() => command('key')}>Повернуть ключ Clean Slate</button></div>
@@ -163,6 +148,27 @@ export function CleanSlate({mission}: {mission: number}) {
           )}
         </section>
       )}
+      <div className="slate-stage" data-complete={state.complete} data-power={state.power}>
+        <div className="slate-robot"><Dummy /></div>
+        <p className="slate-stage-caption">{state.complete ? 'Протокол завершён · Угроза устранена' : 'DUM-E · Локальное управление'}</p>
+      </div>
+      <aside className="slate-guide" aria-label="Инструкция и журнал JARVIS">
+      <p><strong>JARVIS · Аварийное обслуживание</strong></p>
+      <p>Сэр, Альтрон оставил резервный интерфейс в системе управления бронёй. Дистанционное переключение исключено. Дамми поможет восстановить локальную шину. Сохраните питание моего ядра, изолируйте заражённый модуль и установите односторонний барьер. Пожалуйста, не заставляйте Дамми импровизировать.</p>
+      <details className="slate-journal">
+        <summary>Открыть журнал обслуживания</summary>
+        <h2>Акт 47-B / Аварийная реконфигурация шины</h2>
+        <ol>
+          <li>В верхней цепи разместите силовой стабилизатор, изолятор и локальный инициатор по порядку.</li>
+          <li>Заражённый интерфейс поместите в левый нижний отсек. Средний нижний отсек связан с диагностикой ядра JARVIS и запрещён для заражённой кассеты.</li>
+          <li>Регистратор установите справа от карантина. Правый нижний отсек оставьте пустым.</li>
+          <li>Сигнал идёт по верхней цепи справа налево. Направьте стрелку изолятора по ходу сигнала.</li>
+          <li>Перейдите на резервное питание перед вскрытием кассеты. Верните основное питание после сборки и закрытия.</li>
+          <li>Сдвигайте по одной кассете в соседний по стороне пустой отсек.</li>
+        </ol>
+      </details>
+      </aside>
+      </div>
     </main>
   );
 }
