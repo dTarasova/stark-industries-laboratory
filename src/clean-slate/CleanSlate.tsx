@@ -138,12 +138,12 @@ export function CleanSlate({mission}: {mission: number}) {
                   '--to-x': `${(motion.destination % 3 + .5) / 3 * 100}%`,
                   '--to-y': `${(Math.floor(motion.destination / 3) + .5) * 50}%`,
                 } as CSSProperties}>
-                  <svg viewBox="0 0 40 32"><path d="M36 16H19M19 16L12 5H4V11M19 16L12 27H4V21" /></svg>
+                  <svg viewBox="0 0 400 32"><path d="M400 16H19M19 16L12 5H4V11M19 16L12 27H4V21" /><circle cx="28" cy="16" r="5" /></svg>
                 </div>
               )}
             </div>
             <div key={motion?.id} className={motion ? 'slate-motion' : undefined}>
-              <Dummy><p>Автономный манипулятор</p></Dummy>
+              <Dummy />
             </div>
           </div>
           <p className="slate-status" role="status">{message && <><strong>JARVIS</strong> · {message}</>}</p>
@@ -165,3 +165,5 @@ export function CleanSlate({mission}: {mission: number}) {
     </main>
   );
 }
+
+

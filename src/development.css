@@ -2,3 +2,10 @@
   margin-inline: auto;
   padding: 32px 20px;
 }
+
+.development-puzzle {
+  display: block;
+  width: 100%;
+  height: 90dvh;
+  border: 0;
+}

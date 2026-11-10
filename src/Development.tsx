@@ -1,17 +1,7 @@
 import {Dummy} from './Dummy';
-import {lazy, Suspense, useState, type FormEvent} from 'react';
+import {useState, type FormEvent} from 'react';
 import type {Mission} from './App';
 import './development.css';
-
-const Experiment = lazy(async () => ({default: (await import('./element/Prototype')).Prototype}));
-
-function focusExperiment(container: HTMLDivElement | null) {
-  const title = container?.querySelector('h1');
-  if (title) {
-    title.tabIndex = -1;
-    title.focus();
-  }
-}
 
 export function Development({unlocked, onUnlock, mission}: {
   unlocked: boolean;
@@ -76,9 +66,7 @@ export function Development({unlocked, onUnlock, mission}: {
         {!unlocked && <Dummy />}
       </Entry>
       {unlocked && (
-        <Suspense fallback={<><p role="status">Загружаем рабочее пространство…</p><Dummy /></>}>
-          <div className="element-experiment" ref={focusExperiment}><Experiment mission={mission} /></div>
-        </Suspense>
+        <iframe key={mission} className="development-puzzle" src="/prototype_v2/" title="Проект 0 / Нулевой элемент" />
       )}
     </>
   );
