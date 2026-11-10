@@ -1,0 +1,67 @@
+body:has(.ultron-battle) {
+  background: #10151b;
+}
+
+main.ultron-battle:not(:has(.reactor-visual))::before {
+  content: none;
+}
+
+.ultron-battle {
+  padding-bottom: 64px;
+}
+
+.ultron-battle-mask {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  width: min(96vw, 880px);
+  height: min(88vh, 960px);
+  transform: translate(-50%, -50%);
+  opacity: .32;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.ultron-battle-eyes {
+  fill: #ff5047;
+  filter: drop-shadow(0 0 14px #ff3a30);
+  transition: opacity 750ms ease-out;
+}
+
+.ultron-battle[data-won="true"] .ultron-battle-eyes {
+  opacity: 0;
+}
+
+.ultron-battle h1 {
+  margin-bottom: 16px;
+}
+
+.ultron-battle h2 {
+  margin: 32px 0 12px;
+  font-size: clamp(1.1rem, 3vw, 1.35rem);
+}
+
+.ultron-battle-threat {
+  color: #ff9d95;
+}
+
+.ultron-battle blockquote {
+  margin: 32px 0;
+  padding-inline-start: 16px;
+  border-inline-start: 2px solid #527078;
+}
+
+.ultron-battle-action {
+  display: inline-block;
+  padding: 14px 20px;
+  background: #f2b1a8;
+  color: #211617;
+  font-weight: 700;
+}
+
+.ultron-battle[data-won="true"] .ultron-battle-action {
+  background: #9ce4ed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ultron-battle-eyes { transition: none; }
+}

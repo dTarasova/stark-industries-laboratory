@@ -7,7 +7,8 @@ import {Dummy} from './Dummy';
 import {Development} from './Development';
 import {CleanSlate} from './clean-slate/CleanSlate';
 import {readProgress} from './clean-slate/storage';
-export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number;missionRun:number;recoveryRequested:number;recoveryHints:string[]};
+import {UltronBattle} from './UltronBattle';
+export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number;missionRun:number;recoveryRequested:number;recoveryHints:string[];ultronBattle:'inactive'|'active'|'won'};
 type MissionSnapshot = Mission & {receivedAt:number; takeoverDeadline:number|null};
 export function App({experiment, allowOfflineExperiment = false}: {
  experiment?: ReactNode;
@@ -20,7 +21,23 @@ export function App({experiment, allowOfflineExperiment = false}: {
  const [command, setCommand] = useState<{path:string;label:string;version:number}>();
  const fetching=useRef(false);
  const goals=['Осмотритесь в лаборатории. Следующее задание объявит ведущая.','Получите код EDITH для текущей разработки.','Найдите структуру нового элемента.','Подготовьте защиту Земли по заданию ведущей.','Следуйте инструкциям резервного канала.','Исследуйте варианты будущего по материалам ведущей.','Верните JARVIS по инструкции ведущей.','Подготовьтесь к окончательному отключению Альтрона.','Миссия завершена. Сохраните воспоминания об этом дне.'];
- const control=location.pathname==='/control';
+ const pathname = location.pathname;
+ const control = pathname === '/control';
+ const isArchive = pathname === '/archive';
+ const isDevelopment = pathname === '/development';
+ const isCleanSlate = pathname === '/clean-slate';
+ const battleWon = mission?.stage === 7 && mission.ultronBattle === 'won';
+ const showBattle = !control && mission?.stage === 7 &&
+   (mission.ultronBattle === 'active' || (battleWon && pathname === '/battle-with-ultron'));
+ useEffect(() => {
+   if (!showBattle) return;
+   if (location.pathname !== '/battle-with-ultron') history.replaceState(null, '', '/battle-with-ultron');
+   const previousTitle = document.title;
+   document.title = 'BATTLE WITH ULTRON | SURKOV INDUSTRIES';
+   return () => {
+     document.title = location.pathname === '/battle-with-ultron' ? laboratoryTitle : previousTitle;
+   };
+ }, [showBattle]);
  function acceptMission(next: Mission) {
    const receivedAt = performance.now();
    setMission(current => {
@@ -80,6 +97,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
    </section>
  );
  if (!control) {
+   if (showBattle) return <UltronBattle won={battleWon} />;
    const captured = mission?.stage === 4;
    const showExperiment = Boolean(mission) || (allowOfflineExperiment && checkedConnection);
    const showOverview = mission && (captured || (!experiment && !isArchive && !isDevelopment && !isCleanSlate));
@@ -126,7 +144,11 @@ export function App({experiment, allowOfflineExperiment = false}: {
    ? {path:'authorize-defense', label:'Разрешить запуск планетарной защиты', version:mission.version}
    : mission?.stage === 4 && !playing
      ? {path:'open-recovery', label:'Открыть резервный канал', version:mission.version}
-     : undefined;
+     : mission?.stage === 7 && mission.ultronBattle === 'inactive'
+       ? {path:'open-ultron-battle', label:'Включить BATTLE WITH ULTRON', version:mission.version}
+       : mission?.stage === 7 && mission.ultronBattle === 'active'
+         ? {path:'confirm-ultron-battle', label:'Подтвердить успешное решение', version:mission.version}
+         : undefined;
 
  const hint = mission && hintDraft?.stage === mission.stage ? hintDraft.text : '';
  const recoveryControls = auth && mission && recovery && (
@@ -159,7 +181,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
  );
  const storyControls = auth && (availableCommand || playing) && (
    <section>
-     <h2>Планетарная защита</h2>
+     <h2>{mission?.stage === 7 ? 'BATTLE WITH ULTRON' : 'Планетарная защита'}</h2>
      {playing && <p>Идёт сцена захвата.</p>}
      {availableCommand && <button disabled={busy || !online} onClick={() => setCommand(availableCommand)}>{availableCommand.label}…</button>}
      {command && command.path === availableCommand?.path && command.version === availableCommand.version && (
@@ -195,9 +217,9 @@ export function App({experiment, allowOfflineExperiment = false}: {
 }
 
 const isArchive = location.pathname === '/archive';
+const laboratoryTitle = document.title;
 if (isArchive) document.title = 'Архив проектов основателя | SURKOV INDUSTRIES';
 const isDevelopment = location.pathname === '/development';
 if (isDevelopment) document.title = 'Текущая разработка | SURKOV INDUSTRIES';
 
-const isCleanSlate = location.pathname === '/clean-slate';
-if (isCleanSlate) document.title = 'Clean Slate / DUM-E | SURKOV INDUSTRIES';
+if (location.pathname === '/clean-slate') document.title = 'Clean Slate / DUM-E | SURKOV INDUSTRIES';

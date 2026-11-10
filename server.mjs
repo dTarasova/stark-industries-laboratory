@@ -25,13 +25,14 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
   ['missionRun', 'INTEGER NOT NULL DEFAULT 0'],
   ['recoveryRequested', 'INTEGER NOT NULL DEFAULT 0'],
   ['recoveryHints', "TEXT NOT NULL DEFAULT '[]'"],
+  ['ultronBattle', "TEXT NOT NULL DEFAULT 'inactive'"],
  ]) {
   if (!columns.some(column => column.name === name)) db.exec(`ALTER TABLE mission ADD COLUMN ${name} ${type}`);
  }
  const sessions=new Map(); const attempts=new Map();
  const state=()=>db.prepare('SELECT stage,version,badges FROM mission WHERE id=1').get();
  const publicMission = () => {
-  const {edithUnlocked, recoveryHints, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked,missionRun,recoveryRequested,recoveryHints FROM mission WHERE id=1').get();
+  const {edithUnlocked, recoveryHints, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked,missionRun,recoveryRequested,recoveryHints,ultronBattle FROM mission WHERE id=1').get();
   return {...mission, recoveryHints: JSON.parse(recoveryHints), edithUnlocked: Boolean(edithUnlocked), stages, takeoverDuration, serverTime: Date.now()};
  };
  const hash=s=>createHash('sha256').update(s).digest();
@@ -80,6 +81,14 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
     const token=req.headers.cookie?.split('; ').find(x=>x.startsWith('session='))?.slice(8);
     if(!token || !(sessions.get(token)>Date.now())) return send(401,{error:'Войдите в пульт'});
     if(path==='/api/logout'){sessions.delete(token);res.setHeader('Set-Cookie','session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(200,{ok:true});}
+    if (path === '/api/open-ultron-battle' || path === '/api/confirm-ultron-battle') {
+     if (!Number.isInteger(body?.version)) return send(400, {error:'Некорректная версия миссии'});
+     const opening = path === '/api/open-ultron-battle';
+     const result = db.prepare(`UPDATE mission SET ultronBattle=?, version=version+1
+      WHERE id=1 AND stage=7 AND version=? AND ultronBattle=?`)
+      .run(opening ? 'active' : 'won', body.version, opening ? 'inactive' : 'active');
+     return send(result.changes ? 200 : 409, result.changes ? publicMission() : {error:'Команда боя сейчас недоступна. Проверьте состояние миссии.'});
+    }
     if (path === '/api/authorize-defense' || path === '/api/open-recovery') {
      if (!Number.isInteger(body?.version)) return send(400, {error:'Некорректная версия миссии'});
      const result = path === '/api/authorize-defense'
@@ -121,6 +130,7 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
      takeoverEndsAt=CASE WHEN stage=$stage THEN takeoverEndsAt ELSE NULL END,
      recoveryRequested=CASE WHEN stage=$stage THEN recoveryRequested ELSE 0 END,
      recoveryHints=CASE WHEN stage=$stage THEN recoveryHints ELSE '[]' END,
+     ultronBattle=CASE WHEN stage=$stage THEN ultronBattle ELSE 'inactive' END,
      stage=$stage, version=version+1 WHERE id=1 AND version=$version`).run({stage:body.stage, version:body.version});
     return send(result.changes?200:409,result.changes?state():{error:'Этап уже изменился. Обновите данные и подтвердите снова.'});
    }
@@ -131,7 +141,7 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
     return res.end();
    }
    const page=path==='/prototype_v2'||path==='/prototype_v2/'?'/prototype_v2/index.html':
-    ['/', '/control', '/archive', '/development', '/clean-slate'].includes(path)?'/index.html':path;
+    ['/', '/control', '/archive', '/development', '/clean-slate', '/battle-with-ultron'].includes(path)?'/index.html':path;
    const file=resolve(root,'.'+page);
    if(!file.startsWith(root+'/')&&!file.startsWith(root+'\\')) return send(404,{});
    try {res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css'})[extname(file)]||'application/octet-stream');res.end(readFileSync(file));}catch{return send(404,{error:'Не найдено'});}
