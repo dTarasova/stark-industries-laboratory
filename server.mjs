@@ -22,6 +22,10 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
   db.exec('ALTER TABLE mission ADD COLUMN edithUnlocked INTEGER NOT NULL DEFAULT 0');
  }
  for (const [name, type] of [
+  ['elementDiscovered', 'INTEGER NOT NULL DEFAULT 0'],
+  ['timelineFound', 'INTEGER NOT NULL DEFAULT 0'],
+  ['victory', 'INTEGER NOT NULL DEFAULT 0'],
+  ['codeforces', 'INTEGER NOT NULL DEFAULT 0'],
   ['missionRun', 'INTEGER NOT NULL DEFAULT 0'],
   ['recoveryRequested', 'INTEGER NOT NULL DEFAULT 0'],
   ['recoveryHints', "TEXT NOT NULL DEFAULT '[]'"],
@@ -32,7 +36,8 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
  const sessions=new Map(); const attempts=new Map();
  const state=()=>db.prepare('SELECT stage,version,badges FROM mission WHERE id=1').get();
  const publicMission = () => {
-  const {edithUnlocked, recoveryHints, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked,missionRun,recoveryRequested,recoveryHints,ultronBattle FROM mission WHERE id=1').get();
+  db.prepare("UPDATE mission SET stage=5, version=version+1 WHERE stage=4 AND takeoverEndsAt IS NOT NULL AND takeoverEndsAt<=?").run(Date.now());
+  const {edithUnlocked, recoveryHints, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked,missionRun,recoveryRequested,recoveryHints,ultronBattle,elementDiscovered,timelineFound,victory,codeforces FROM mission WHERE id=1').get();
   return {...mission, recoveryHints: JSON.parse(recoveryHints), edithUnlocked: Boolean(edithUnlocked), stages, takeoverDuration, serverTime: Date.now()};
  };
  const hash=s=>createHash('sha256').update(s).digest();
@@ -56,8 +61,18 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
      if (!code || !timingSafeEqual(hash(code), edithHash)) {
       return send(422, {error:'Код не подошёл. Проверьте его и попробуйте ещё раз.'});
      }
-     db.prepare('UPDATE mission SET edithUnlocked=1, version=version+1 WHERE id=1 AND edithUnlocked=0').run();
+     db.prepare('UPDATE mission SET edithUnlocked=1, stage=CASE WHEN stage<2 THEN 2 ELSE stage END, version=version+1 WHERE id=1 AND edithUnlocked=0').run();
      return send(200, publicMission());
+    }
+    if (['/api/element-complete', '/api/clean-slate-complete', '/api/continue-timeline'].includes(path)) {
+     if (!Number.isInteger(body?.version) || !Number.isInteger(body?.missionRun)) return send(400,{error:'Некорректная версия миссии'});
+     const sql = path === '/api/element-complete'
+      ? 'UPDATE mission SET elementDiscovered=1, stage=3, version=version+1 WHERE stage=2 AND edithUnlocked=1 AND elementDiscovered=0'
+      : path === '/api/continue-timeline'
+       ? "UPDATE mission SET stage=7, ultronBattle=CASE WHEN codeforces=1 THEN 'active' ELSE 'inactive' END, version=version+1 WHERE stage=6 AND timelineFound=1"
+       : "UPDATE mission SET victory=1, stage=8, version=version+1 WHERE stage=7 AND (codeforces=0 OR ultronBattle='won') AND victory=0";
+     const result=db.prepare(sql+' AND version=? AND missionRun=?').run(body.version,body.missionRun);
+     return send(result.changes?200:409,result.changes?publicMission():{error:'Миссия изменилась. Обновите состояние.'});
     }
     if (path === '/api/recovery-request') {
      if (!Number.isInteger(body?.version)) return send(400, {error:'Некорректная версия миссии'});
@@ -81,7 +96,12 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
     const token=req.headers.cookie?.split('; ').find(x=>x.startsWith('session='))?.slice(8);
     if(!token || !(sessions.get(token)>Date.now())) return send(401,{error:'Войдите в пульт'});
     if(path==='/api/logout'){sessions.delete(token);res.setHeader('Set-Cookie','session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(200,{ok:true});}
-    if (path === '/api/open-ultron-battle' || path === '/api/confirm-ultron-battle') {
+    if (path === '/api/confirm-timeline') {
+     if (!Number.isInteger(body?.version) || typeof body.codeforces !== 'boolean') return send(400,{error:'Некорректная команда'});
+     const result=db.prepare('UPDATE mission SET stage=6,timelineFound=1,codeforces=?,version=version+1 WHERE stage=5 AND version=?').run(Number(body.codeforces),body.version);
+     return send(result.changes?200:409,result.changes?publicMission():{error:'Миссия уже изменилась.'});
+    }
+    if (path === '/api/open-ultron-battle'  || path === '/api/confirm-ultron-battle') {
      if (!Number.isInteger(body?.version)) return send(400, {error:'Некорректная версия миссии'});
      const opening = path === '/api/open-ultron-battle';
      const result = db.prepare(`UPDATE mission SET ultronBattle=?, version=version+1

@@ -6,9 +6,9 @@ import {UltronTerminal} from './UltronTerminal';
 import {Dummy} from './Dummy';
 import {Development} from './Development';
 import {CleanSlate} from './clean-slate/CleanSlate';
-import {readProgress} from './clean-slate/storage';
+
 import {UltronBattle} from './UltronBattle';
-export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:boolean;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number;missionRun:number;recoveryRequested:number;recoveryHints:string[];ultronBattle:'inactive'|'active'|'won'};
+export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:number;timelineFound:number;victory:number;codeforces:number;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number;missionRun:number;recoveryRequested:number;recoveryHints:string[];ultronBattle:'inactive'|'active'|'won'};
 type MissionSnapshot = Mission & {receivedAt:number; takeoverDeadline:number|null};
 export function App({experiment, allowOfflineExperiment = false}: {
  experiment?: ReactNode;
@@ -16,11 +16,13 @@ export function App({experiment, allowOfflineExperiment = false}: {
 } = {}){
  const [mission,setMission]=useState<MissionSnapshot>();const [error,setError]=useState('');const [online,setOnline]=useState(false);const [password,setPassword]=useState('');const [auth,setAuth]=useState(false);const [selected,setSelected]=useState(0);const [pending,setPending]=useState<{stage:number;version:number}>();const [busy,setBusy]=useState(false);
  const [hintDraft, setHintDraft] = useState<{stage:number; text:string}>();
+ const [finaleStep,setFinaleStep]=useState(0);
+ const [codeforces,setCodeforces]=useState(false);
  const [clock, setClock] = useState(0);
  const [checkedConnection, setCheckedConnection] = useState(false);
  const [command, setCommand] = useState<{path:string;label:string;version:number}>();
  const fetching=useRef(false);
- const goals=['Осмотритесь в лаборатории. Следующее задание объявит ведущая.','Получите код EDITH для текущей разработки.','Найдите структуру нового элемента.','Подготовьте защиту Земли по заданию ведущей.','Следуйте инструкциям резервного канала.','Исследуйте варианты будущего по материалам ведущей.','Верните JARVIS по инструкции ведущей.','Подготовьтесь к окончательному отключению Альтрона.','Миссия завершена. Сохраните воспоминания об этом дне.'];
+ const goals=['Осмотритесь в лаборатории. Следующее задание объявит ведущая.','Получите код EDITH для текущей разработки.','Найдите структуру нового элемента.','Получите задание от ведущей.','Следуйте инструкциям резервного канала.','Просчитайте все временные линии. Получите материалы у ведущей','Верните JARVIS по инструкции ведущей.','Подготовьтесь к окончательному отключению Альтрона.','Миссия завершена. Сохраните воспоминания об этом дне.'];
  const pathname = location.pathname;
  const control = pathname === '/control';
  const isArchive = pathname === '/archive';
@@ -78,10 +80,10 @@ export function App({experiment, allowOfflineExperiment = false}: {
  async function post(path:string,body:unknown){const r=await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok){if(r.status===401)setAuth(false);throw Error(data.error);}return data;}
  async function action(fn:()=>Promise<void>){setBusy(true);setError('');try{await fn();}catch(e){setError(e instanceof Error?e.message:'Нет связи. Повторите попытку.');}finally{setBusy(false);}}
  async function runCommand(path:string, version:number) {
-   try {acceptMission(await post(path, {version}));}
+   try {acceptMission(await post(path, {version,codeforces}));}
    finally {await refresh();}
  }
- const recovery = mission?.stage === 5 || mission?.stage === 6;
+ const recovery = mission?.stage === 5;
  const missionSummary = (
    <section>
      <p role="status">{online ? 'Связь с лабораторией установлена' : 'Нет связи с лабораторией'}</p>
@@ -92,11 +94,15 @@ export function App({experiment, allowOfflineExperiment = false}: {
      {!control && mission?.stage === 3 && (mission.defenseAuthorized
        ? <button disabled={busy || !online} onClick={() => void action(() => runCommand('activate-defense', mission.version))}>Активировать планетарную защиту</button>
        : <p>Ожидайте разрешения ведущей на запуск.</p>)}
-     {!control && mission && mission.stage >= 7 && !isCleanSlate && <p><a href="/clean-slate">Открыть Clean Slate / DUM-E</a></p>}
-     {!control && error && <p role="alert">{error}</p>}
+     {!control && mission && mission.stage === 7 && (!mission.codeforces || battleWon) && !isCleanSlate && <p><a href="/clean-slate">Открыть Clean Slate / DUM-E</a></p>}
+     {!control && mission && <ul>{Boolean(mission.elementDiscovered) && <li>Найденный химический элемент</li>}{Boolean(mission.timelineFound) && <li>Успешная временная линия</li>}{Boolean(mission.victory) && <><li>Выстроена планетарная защита</li><li>Победа над Альтроном</li></>}</ul>}{!control && error && <p role="alert">{error}</p>}
    </section>
  );
  if (!control) {
+   if (mission?.stage === 6) return <main><h1>Успешная временная линия</h1><img src="/strange.svg" alt="Медитирующий Стрэндж среди временных линий" style={{width:"100%",maxWidth:800}} /><p>{mission.codeforces ? 'Среди множества возможных исходов найдена временная линия, ведущая к победе. Теперь вы знаете, как остановить Альтрона. Осталось воплотить этот исход' : 'Поздравляю с победой! Основные силы Альтрона уничтожены, но копии его сознания сохранились в нескольких костюмах. Запустите протокол Clean Slate, чтобы устранить угрозу окончательно'}</p><button disabled={busy || !online} onClick={() => void action(async () => {acceptMission(await post('continue-timeline',{version:mission.version,missionRun:mission.missionRun})); location.href=mission.codeforces ? '/battle-with-ultron' : '/clean-slate';})}>{mission.codeforces ? 'Воплотить' : 'Запустить Clean Slate'}</button>{error && <p role="alert">{error}</p>}</main>;
+
+   if (mission?.stage === 8 && !new URLSearchParams(location.search).has('results')) return <main><h1>Победа над Альтроном</h1>{finaleStep === 0 ? <><p>JARVIS · Невероятно. Дамми выполнил последовательность без серьёзных повреждений оборудования. Сэр, я рекомендую внести в бюджет модернизацию его манипулятора.</p><button onClick={() => setFinaleStep(1)}>Продолжить</button></> : <><h2>С 28-летием, Максим!</h2><p>Пусть впереди будет ещё больше открытий, смелых проектов и побед!</p><a href="/?results">Вернуться в лабораторию</a></>}</main>;
+   if (mission?.stage === 7 && !showBattle) return <CleanSlate key={mission.missionRun} mission={mission.missionRun} />;
    if (showBattle) return <UltronBattle won={battleWon} />;
    const captured = mission?.stage === 4;
    const showExperiment = Boolean(mission) || (allowOfflineExperiment && checkedConnection);
@@ -108,14 +114,14 @@ export function App({experiment, allowOfflineExperiment = false}: {
        {!mission && !(showExperiment && experiment) && <main>{missionSummary}<Dummy /></main>}
        {showOverview && !recovery && (
          <div className="takeover-backdrop" data-captured={captured && elapsed >= 36000} inert={captured}>
-           <LaboratoryOverview stage={mission.stage} elementDiscovered={mission.elementDiscovered === true} badges={mission.badges}
-             cleanSlateComplete={readProgress(mission.missionRun).state.complete} captured={captured} edithUnlocked={mission.edithUnlocked}>{missionSummary}</LaboratoryOverview>
+           <LaboratoryOverview stage={mission.stage} elementDiscovered={Boolean(mission.elementDiscovered)} badges={mission.badges}
+             cleanSlateComplete={Boolean(mission.victory)} captured={captured} edithUnlocked={mission.edithUnlocked}>{missionSummary}</LaboratoryOverview>
          </div>
        )}
        {mission && isCleanSlate && !captured && !recovery && (
-         mission.stage >= 7
+         (mission.stage === 8 || (mission.stage === 7 && (!mission.codeforces || mission.ultronBattle === 'won')))
            ? <CleanSlate key={mission.missionRun} mission={mission.missionRun} />
-           : <main><h1>Clean Slate / DUM-E</h1><p>Панель откроется после восстановления JARVIS.</p><a href="/">В лабораторию</a></main>
+           : <main><h1>Clean Slate / DUM-E</h1><p>Панель откроется после выполнения текущего задания.</p><a href="/">В лабораторию</a></main>
        )}
        {captured && <UltronTerminal elapsed={elapsed} finished={!playing} />}
        {recovery && (
@@ -140,11 +146,13 @@ export function App({experiment, allowOfflineExperiment = false}: {
    );
  }
 
- const availableCommand = mission?.stage === 3 && !mission.defenseAuthorized
-   ? {path:'authorize-defense', label:'Разрешить запуск планетарной защиты', version:mission.version}
+ const availableCommand = mission?.stage === 5
+   ? {path:'confirm-timeline',label:'Игрок успешно нашёл временные линии',version:mission.version}
+   : mission?.stage === 3 && !mission.defenseAuthorized
+   ? {path:'authorize-defense', label:'Игрок успешно прошёл испытание', version:mission.version}
    : mission?.stage === 4 && !playing
      ? {path:'open-recovery', label:'Открыть резервный канал', version:mission.version}
-     : mission?.stage === 7 && mission.ultronBattle === 'inactive'
+     : mission?.stage === 7 && mission.ultronBattle === 'inactive' && Boolean(mission.codeforces)
        ? {path:'open-ultron-battle', label:'Включить BATTLE WITH ULTRON', version:mission.version}
        : mission?.stage === 7 && mission.ultronBattle === 'active'
          ? {path:'confirm-ultron-battle', label:'Подтвердить успешное решение', version:mission.version}
@@ -182,7 +190,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
  const storyControls = auth && (availableCommand || playing) && (
    <section>
      <h2>{mission?.stage === 7 ? 'BATTLE WITH ULTRON' : 'Планетарная защита'}</h2>
-     {playing && <p>Идёт сцена захвата.</p>}
+     {mission?.stage === 5 && <label><input type="checkbox" checked={codeforces} onChange={e=>setCodeforces(e.target.checked)} />Включить Codeforces</label>}{playing && <p>Идёт сцена захвата.</p>}
      {availableCommand && <button disabled={busy || !online} onClick={() => setCommand(availableCommand)}>{availableCommand.label}…</button>}
      {command && command.path === availableCommand?.path && command.version === availableCommand.version && (
        <div role="group" aria-label="Подтверждение сюжетной команды">
@@ -196,7 +204,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
      )}
    </section>
  );
- return <main><header><span>SURKOV INDUSTRIES</span><small>ЛАБОРАТОРИЯ · 28</small></header><h1>Пульт ведущей</h1>{missionSummary}{storyControls}{recoveryControls}{dummyReset}{control&&!auth&&<form onSubmit={e=>{e.preventDefault();void action(async()=>{await post('login',{password});setPassword('');setAuth(true);});}}><label>Пароль ведущей<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required/></label><button disabled={busy}>Войти</button></form>}{control&&auth&&mission&&<section><label>Новый этап<select value={selected} onChange={e=>setSelected(Number(e.target.value))}>{mission.stages.map((s,i)=><option key={s} value={i}>{s}</option>)}</select></label><button disabled={busy||!online} onClick={()=>setPending({stage:selected,version:mission.version})}>Сменить этап…</button>{pending&&<div role="group" aria-label="Подтверждение смены этапа"><p>Переключить миссию на «{mission.stages[pending.stage]}» для всех устройств?</p><button disabled={busy||!online} onClick={()=>void action(async()=>{try{await post('mission',pending);}finally{setPending(undefined);await refresh();}})}>Подтвердить</button><button disabled={busy} onClick={()=>setPending(undefined)}>Отмена</button></div>}<button disabled={busy} onClick={()=>void action(async()=>{await post('logout',{});setAuth(false);setPending(undefined);setCommand(undefined);setHintDraft(undefined);})}>Выйти</button></section>}{auth && mission && (
+ return <main><header><span>SURKOV INDUSTRIES</span><small>ЛАБОРАТОРИЯ · 28</small></header><h1>Пульт ведущей</h1>{missionSummary}{storyControls}{recoveryControls}{dummyReset}{control&&!auth&&<form onSubmit={e=>{e.preventDefault();void action(async()=>{await post('login',{password});setPassword('');setAuth(true);});}}><label>Пароль ведущей<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required/></label><button disabled={busy}>Войти</button></form>}{control&&auth&&mission&&<section><h2>Аварийное управление</h2><label>Новый этап<select value={selected} onChange={e=>setSelected(Number(e.target.value))}>{mission.stages.map((s,i)=><option key={s} value={i}>{s}</option>)}</select></label><button disabled={busy||!online} onClick={()=>setPending({stage:selected,version:mission.version})}>Сменить этап…</button>{pending&&<div role="group" aria-label="Подтверждение смены этапа"><p>Переключить миссию на «{mission.stages[pending.stage]}» для всех устройств?</p><button disabled={busy||!online} onClick={()=>void action(async()=>{try{await post('mission',pending);}finally{setPending(undefined);await refresh();}})}>Подтвердить</button><button disabled={busy} onClick={()=>setPending(undefined)}>Отмена</button></div>}<button disabled={busy} onClick={()=>void action(async()=>{await post('logout',{});setAuth(false);setPending(undefined);setCommand(undefined);setHintDraft(undefined);})}>Выйти</button></section>}{auth && mission && (
   <section>
     <h2>Бейджи основателя</h2>
     {badgeNames.map((name, badge) => {

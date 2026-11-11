@@ -1,3 +1,4 @@
+import {useMissionCompletion} from '../useMissionCompletion';
 import { useEffect, useRef, useState } from 'react';
 import {Dummy} from '../Dummy';
 import {DummyItems, resetDummyItems} from './DummyItems';
@@ -46,7 +47,7 @@ function loadAttempt(): Attempt {
   }
   try {
     const legacy = JSON.parse(sessionStorage.getItem('surkov-element-test-v1') ?? 'null');
-    const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') as Attempt | null;
+    const saved = JSON.parse(sessionStorage.getItem(storageKey + ':' + (new URLSearchParams(location.search).get('run') ?? '0')) ?? 'null') as Attempt | null;
     element ??= readElement(saved?.element) ?? readElement(legacy?.element);
     if (saved && Array.isArray(saved.selected) && new Set(saved.selected).size === saved.selected.length &&
       saved.selected.every(id => buildings.some(site => site.id === id))) {
@@ -89,6 +90,7 @@ export function Prototype({mission = 0}: {mission?: number} = {}) {
   const [focusedBuilding, setFocusedBuilding] = useState<string>();
   const { stage, selected, element, exclusions = [] } = attempt;
   const excluded = exclusions.includes([...selected].sort().join(''));
+  const missionSaved=useMissionCompletion(stage === 'complete', 'element-complete');
   const showingElement = viewSaved || stage === 'complete';
   const investigating = stage === 'archive';
   const selecting = (stage === 'selection' || investigating) && !showingElement;
@@ -120,7 +122,7 @@ export function Prototype({mission = 0}: {mission?: number} = {}) {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify({
+      sessionStorage.setItem(storageKey + ':' + (new URLSearchParams(location.search).get('run') ?? '0'), JSON.stringify({
         selected, stage, exclusions: attempt.exclusions, firstHypothesis: attempt.firstHypothesis,
       }));
     } catch {
@@ -294,6 +296,7 @@ export function Prototype({mission = 0}: {mission?: number} = {}) {
             {hint === 3 ? 'Все подсказки открыты' : `Открыть подсказку ${hint + 1} из 3`}
           </button>}
         </>}
+        {stage === 'complete' && <p>{missionSaved ? <a href="/" target="_top">Вернуться в лабораторию</a> : 'Сохраняем открытие. Ожидаем связь с лабораторией…'}</p>}
         {element && stage !== 'complete' && <button type="button" disabled={assembling}
           onClick={() => { setViewSaved(!viewSaved); setHint(0); setMessage(''); }}>
           {viewSaved ? 'Вернуться к попытке' : 'Открыть сохранённый элемент'}

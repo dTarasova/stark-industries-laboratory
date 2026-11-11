@@ -1,3 +1,4 @@
+import {useMissionCompletion} from '../useMissionCompletion';
 import {useEffect, useState, type CSSProperties} from 'react';
 import {Dummy} from '../Dummy';
 import {apply, quarantineWarning, replay, type Action} from './puzzle';
@@ -31,6 +32,7 @@ const finale = [
 export function CleanSlate({mission}: {mission: number}) {
   const [history, setHistory] = useState(() => readProgress(mission).history);
   const state = replay(history);
+  const missionSaved=useMissionCompletion(state.complete, 'clean-slate-complete');
   const [panel, setPanel] = useState(() => history.length > 0);
   const [hintCount, setHintCount] = useState(0);
   const [message, setMessage] = useState('');
@@ -131,7 +133,7 @@ export function CleanSlate({mission}: {mission: number}) {
               )}
             </div>
           </div>
-          <p className="slate-status" role="status">{message && <><strong>JARVIS</strong> · {message}</>}</p>
+          <p className="slate-status" role="status">{message && <><strong>Локальная диагностика</strong> · {message}</>}</p>
           <div className="slate-activation"><div><h3>Запуск Clean Slate</h3><p>После сборки закройте кассету и верните основное питание.</p></div><button disabled={state.complete} onClick={() => command('key')}>Повернуть ключ Clean Slate</button></div>
           {storageFailed && <p role="alert">Браузер не сохранил прогресс. Оставьте страницу открытой, чтобы продолжить.</p>}
           <div className="slate-controls">
@@ -143,18 +145,19 @@ export function CleanSlate({mission}: {mission: number}) {
           {state.complete && (
             <section className="slate-finale" aria-label="Ход протокола Clean Slate">
               <ol role="log">{finale.slice(0, lines).map(line => <li key={line}>{line}</li>)}</ol>
-              {lines === finale.length && <p>JARVIS · Невероятно. Дамми выполнил последовательность без серьёзных повреждений оборудования. Сэр, я рекомендую внести в бюджет модернизацию его манипулятора.</p>}
+              {lines === finale.length && missionSaved && <p>JARVIS · Невероятно. Дамми выполнил последовательность без серьёзных повреждений оборудования. Сэр, я рекомендую внести в бюджет модернизацию его манипулятора.</p>}
             </section>
           )}
         </section>
       )}
+      {state.complete && lines === finale.length && <section>{missionSaved ? <><h2>С 28-летием, Максим!</h2><p>Лаборатория восстановлена. Пусть впереди будет ещё больше открытий, смелых проектов и побед!</p><a href="/">Вернуться в лабораторию</a></> : <p role="status">Передаём результат в лабораторию…</p>}</section>}
       <div className="slate-stage" data-complete={state.complete} data-power={state.power}>
         <div className="slate-robot"><Dummy /></div>
         <p className="slate-stage-caption">{state.complete ? 'Протокол завершён · Угроза устранена' : 'DUM-E · Локальное управление'}</p>
       </div>
-      <aside className="slate-guide" aria-label="Инструкция и журнал JARVIS">
-      <p><strong>JARVIS · Аварийное обслуживание</strong></p>
-      <p>Сэр, Альтрон оставил резервный интерфейс в системе управления бронёй. Дистанционное переключение исключено. Дамми поможет восстановить локальную шину. Сохраните питание моего ядра, изолируйте заражённый модуль и установите односторонний барьер. Пожалуйста, не заставляйте Дамми импровизировать.</p>
+      <aside className="slate-guide" aria-label="Инструкция и локальный журнал">
+      <p><strong>DUM-E · Аварийное обслуживание</strong></p>
+      <p>Сэр, Альтрон оставил резервный интерфейс в системе управления бронёй. Дистанционное переключение исключено. Дамми поможет восстановить локальную шину. Сохраните питание ядра JARVIS, изолируйте заражённый модуль и установите односторонний барьер. Пожалуйста, не заставляйте Дамми импровизировать.</p>
       <details className="slate-journal">
         <summary>Открыть журнал обслуживания</summary>
         <h2>Акт 47-B / Аварийная реконфигурация шины</h2>

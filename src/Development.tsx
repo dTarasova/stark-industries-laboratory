@@ -66,7 +66,7 @@ export function Development({unlocked, onUnlock, mission}: {
         {!unlocked && <Dummy />}
       </Entry>
       {unlocked && (
-        <iframe key={mission} className="development-puzzle" src="/prototype_v2/" title="Проект 0 / Нулевой элемент" />
+        <iframe key={mission} className="development-puzzle" src={`/prototype_v2/?run=${mission}`} title="Проект 0 / Нулевой элемент" />
       )}
     </>
   );

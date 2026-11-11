@@ -30,7 +30,7 @@ test('Общая миссия, защита и сохранение после �
  }finally{if(server.listening) await new Promise(r=>server.close(r));rmSync(dir,{recursive:true});}
 });
 
-test('Защита запускается один раз после допуска, а резервный канал открывает ведущая', async ({mock}) => {
+test('Защита запускается один раз после допуска, а резервный канал открывается автоматически', async ({mock}) => {
  mock.timers.enable({apis: ['Date']});
  const server = laboratory({database: ':memory:', password: 'test-password-only-123'});
  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -54,11 +54,10 @@ test('Защита запускается один раз после допус�
   assert.equal((await post('open-recovery', {version: 3}, cookie)).status, 409);
   mock.timers.tick(45_000);
   const locked = await (await fetch(base + 'mission')).json();
-  assert.equal(locked.stage, 4);
+  assert.equal(locked.stage, 5);
   assert.equal(locked.takeoverEndsAt, mission.takeoverEndsAt);
   const recovery = await post('open-recovery', {version: 3}, cookie);
-  assert.equal(recovery.status, 200);
-  assert.equal((await recovery.json()).stage, 5);
+  assert.equal(recovery.status, 409);
  } finally {
   await new Promise(resolve => server.close(resolve));
  }
@@ -91,7 +90,7 @@ test('EDITH открывает разработку для общей мисси
   assert.equal((await post('edith', {code: 'wrong'})).status, 422);
   assert.equal((await mission()).edithUnlocked, false);
   assert.equal((await post('edith', {code: options.edithCode})).status, 200);
-  assert.equal((await mission()).stage, initial.stage);
+  assert.equal((await mission()).stage, 2);
   const unlocked = await mission();
   assert.equal(unlocked.edithUnlocked, true);
   assert.equal((await post('edith', {code: options.edithCode})).status, 200);
@@ -103,5 +102,47 @@ test('EDITH открывает разработку для общей мисси
  } finally {
   if (server?.listening) await new Promise(resolve => server.close(resolve));
   rmSync(dir, {recursive: true});
+ }
+});
+
+
+test('Обе ветки сквозного сценария сохраняют достижения и защищены версией', async () => {
+ for (const codeforces of [false,true]) {
+  const server=laboratory({database:':memory:',password:'test-password-only-123',edithCode:'edith'});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+server.address().port+'/api/';
+  const post=(path,body,cookie='')=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json',cookie},body:JSON.stringify(body)});
+  const get=async()=>(await fetch(base+'mission')).json();
+  try {
+   const login=await post('login',{password:'test-password-only-123'});
+   const cookie=login.headers.get('set-cookie').split(';')[0];
+   await post('edith',{code:'edith'});
+   let m=await get();
+   const completion={version:m.version,missionRun:m.missionRun};
+   assert.equal((await post('element-complete',completion)).status,200);
+   assert.equal((await post('element-complete',completion)).status,409);
+   m=await get();
+   assert.equal(m.elementDiscovered,1);
+   await post('mission',{stage:5,version:m.version},cookie);
+   m=await get();
+   assert.equal(m.timelineFound,0);
+   assert.equal((await post('confirm-timeline',{version:m.version,codeforces},cookie)).status,200);
+   m=await get();
+   assert.equal(m.stage,6);
+   await post('continue-timeline',{version:m.version,missionRun:m.missionRun});
+   m=await get();
+   if(codeforces) {
+    assert.equal((await post('clean-slate-complete',{version:m.version,missionRun:m.missionRun})).status,409);
+    await post('confirm-ultron-battle',{version:m.version},cookie);
+    m=await get();
+   }
+   assert.equal((await post('clean-slate-complete',{version:m.version,missionRun:m.missionRun})).status,200);
+   m=await get();
+   assert.equal(m.stage,8);
+   assert.equal(m.victory,1);
+   assert.equal(m.timelineFound,1);
+   await post('mission',{stage:0,version:m.version},cookie);
+   assert.equal((await get()).victory,1);
+  } finally {await new Promise(resolve=>server.close(resolve));}
  }
 });
