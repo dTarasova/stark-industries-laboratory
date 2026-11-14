@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import data from './puzzle_data.json';
+import {reportElementComplete} from '../src/elementCompletion';
 const $ = id => document.getElementById(id);
 const buildingData = new Map(data.buildings.map(n => [n.id, n]));
 const edgeId = (a,b) => [a,b].sort().join('|');
@@ -469,6 +470,7 @@ function animateAssembly(time) {
   $('checkProjection').disabled = false;
   stage=4;showStvor=false;stepDisplay();updateView();
   setStatus('СТРУКТУРА ПОДТВЕРЖДЕНА. Нулевой элемент разблокирован.','good');
+  reportElementComplete();
 }
 const hints=[
   'Подсказка 1. Найдите середины двух переходов. Отрезок между ними — створ. Горизонтальное направление взгляда должно быть перпендикулярно створу, а не совпадать с ним.',

@@ -12,7 +12,7 @@ export function useMissionCompletion(complete:boolean, endpoint:string) {
         if (!response.ok) return;
         const mission=await response.json();
         if (stopped) return;
-        if (run.current === undefined) run.current=endpoint === 'element-complete' ? Number(new URLSearchParams(location.search).get('run') ?? 0) : mission.missionRun;
+        if (run.current === undefined) run.current=endpoint === 'element-complete' ? Number(new URLSearchParams(location.search).get('run') ?? mission.missionRun) : mission.missionRun;
         if (!complete || mission.missionRun !== run.current) return;
         const field=endpoint === 'element-complete' ? 'elementDiscovered' : 'victory';
         if (mission[field]) {setSaved(true);return;}
