@@ -92,6 +92,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
           <section className="lab-panel" aria-labelledby="founder-achievements">
             <h2 id="founder-achievements">Личные достижения</h2>
             <ul className="achievement-list">
+              {elementDiscovered && <li><strong>Новый химический элемент</strong><p>Архивная реконструкция завершена. Структура элемента обнаружена.</p></li>}
               {cleanSlateComplete && <li><strong>Протокол Clean Slate</strong><p>Дамми восстановил аварийную шину. Заражённые костюмы выведены из строя.</p></li>}
               <li><ProjectIllustration project="research" /><strong>Исследовательская программа</strong><p>Текст диссертации подготовлен.</p></li>
               <li><ProjectIllustration project="graduate" /><strong>Аспирантура</strong><p>Аспирантура окончена.</p></li>

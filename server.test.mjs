@@ -146,3 +146,24 @@ test('Обе ветки сквозного сценария сохраняют �
   } finally {await new Promise(resolve=>server.close(resolve));}
  }
 });
+
+test('Cloudflare: лимит входа доверяет IP только от заданного прокси', async () => {
+ for (const trustedProxy of ['', '127.0.0.1']) {
+  const server = laboratory({database: ':memory:', password: 'test-password-only-123', secure: true, trustedProxy});
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const login = (ip, password = 'wrong') => fetch(`http://127.0.0.1:${server.address().port}/api/login`, {
+   method: 'POST', headers: {'Content-Type': 'application/json', 'CF-Connecting-IP': ip}, body: JSON.stringify({password}),
+  });
+  try {
+   for (let i = 0; i < 5; i++) assert.equal((await login('203.0.113.1')).status, 401);
+   assert.equal((await login('203.0.113.1')).status, 429);
+   const other = await login('2001:db8::1', 'test-password-only-123');
+   assert.equal(other.status, trustedProxy ? 200 : 429);
+   if (trustedProxy) {
+    assert.match(other.headers.get('set-cookie'), /; Secure/);
+    for (let i = 0; i < 5; i++) assert.equal((await login('invalid')).status, 401);
+    assert.equal((await login('also-invalid')).status, 429);
+   }
+  } finally { await new Promise(resolve => server.close(resolve)); }
+ }
+});

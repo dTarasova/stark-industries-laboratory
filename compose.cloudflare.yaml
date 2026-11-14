@@ -1,0 +1,31 @@
+# Запускать вместе с compose.yaml: см. CLOUDFLARE.md.
+services:
+  laboratory:
+    environment:
+      NODE_ENV: production
+      TRUSTED_PROXY_IP: 172.30.28.2
+    networks:
+      default: {}
+      tunnel: {}
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Укажите CLOUDFLARE_TUNNEL_TOKEN в .env}
+    depends_on:
+      laboratory:
+        condition: service_healthy
+    networks:
+      tunnel:
+        ipv4_address: 172.30.28.2
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+networks:
+  tunnel:
+    ipam:
+      config:
+        - subnet: 172.30.28.0/24

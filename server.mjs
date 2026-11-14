@@ -3,9 +3,10 @@ import {DatabaseSync} from 'node:sqlite';
 import {randomBytes, timingSafeEqual, createHash} from 'node:crypto';
 import {mkdirSync, readFileSync} from 'node:fs';
 import {resolve, extname} from 'node:path';
+import {isIP} from 'node:net';
 export const stages = ['Знакомство с лабораторией','EDITH — текущая разработка','Новый элемент','Защита Земли','Атака Альтрона','Временные линии','Восстановление JARVIS','Clean Slate','Победа'];
 const takeoverDuration = 45_000;
-export function laboratory({database='data/mission.sqlite',password,edithCode,secure=false}) {
+export function laboratory({database='data/mission.sqlite',password,edithCode,secure=false,trustedProxy=''}) {
  if (!password || password.length < 16) throw Error('Задайте ADMIN_PASSWORD длиной от 16 символов');
  const db=new DatabaseSync(database); db.exec('CREATE TABLE IF NOT EXISTS mission (id INTEGER PRIMARY KEY CHECK(id=1), stage INTEGER NOT NULL, version INTEGER NOT NULL); INSERT OR IGNORE INTO mission (id,stage,version) VALUES(1,0,0)');
  if (!db.prepare('PRAGMA table_info(mission)').all().some(column => column.name === 'badges')) {
@@ -81,7 +82,10 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
      return send(result.changes ? 200 : 409, result.changes ? publicMission() : {error:'Запрос помощи сейчас недоступен.'});
     }
     if(path==='/api/login') {
-     const key=req.socket.remoteAddress; const now=Date.now(); const attempt=attempts.get(key);
+     const peer=req.socket.remoteAddress?.replace(/^::ffff:/, '');
+     const visitor=req.headers['cf-connecting-ip'];
+     const key=trustedProxy && peer===trustedProxy && typeof visitor==='string' && isIP(visitor) ? visitor : peer;
+     const now=Date.now(); const attempt=attempts.get(key);
      if(attempt && attempt.until>now && attempt.count>=5) return send(429,{error:'Повторите вход через 15 минут'});
      if(typeof body.password!=='string' || !timingSafeEqual(hash(body.password),hash(password))){const a=attempt?.until>now?attempt:{count:0,until:now+900000};a.count++;attempts.set(key,a);return send(401,{error:'Неверный пароль'});}
      attempts.delete(key); const token=randomBytes(32).toString('hex'); sessions.set(token,now+43200000);
@@ -168,4 +172,4 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
   } catch {send(500,{error:'Сервис временно недоступен'});}
  });server.on('close',()=>db.close());return server;
 }
-if(process.argv[1]===resolve('server.mjs')) {mkdirSync('data',{recursive:true}); laboratory({password:process.env.ADMIN_PASSWORD,edithCode:process.env.EDITH_CODE,secure:process.env.NODE_ENV==='production'}).listen(Number(process.env.PORT||3000),'0.0.0.0');}
+if(process.argv[1]===resolve('server.mjs')) {mkdirSync('data',{recursive:true}); laboratory({password:process.env.ADMIN_PASSWORD,edithCode:process.env.EDITH_CODE,secure:process.env.NODE_ENV==='production',trustedProxy:process.env.TRUSTED_PROXY_IP}).listen(Number(process.env.PORT||3000),'0.0.0.0');}
