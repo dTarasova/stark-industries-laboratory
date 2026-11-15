@@ -1,3 +1,4 @@
+import {VictoryFinale} from './VictoryFinale';
 import {useEffect,useState,useRef,type ReactNode} from 'react';
 import './style.css';
 import {FounderArchive} from './FounderArchive';
@@ -16,7 +17,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
 } = {}){
  const [mission,setMission]=useState<MissionSnapshot>();const [error,setError]=useState('');const [online,setOnline]=useState(false);const [password,setPassword]=useState('');const [auth,setAuth]=useState(false);const [selected,setSelected]=useState(0);const [pending,setPending]=useState<{stage:number;version:number}>();const [busy,setBusy]=useState(false);
  const [hintDraft, setHintDraft] = useState<{stage:number; text:string}>();
- const [finaleStep,setFinaleStep]=useState(0);
+
  const [codeforces,setCodeforces]=useState(false);
  const [clock, setClock] = useState(0);
  const [checkedConnection, setCheckedConnection] = useState(false);
@@ -101,7 +102,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
  if (!control) {
    if (mission?.stage === 6) return <main><h1>Успешная временная линия</h1><img src="/strange.svg" alt="Медитирующий Стрэндж среди временных линий" style={{width:"100%",maxWidth:800}} /><p>{mission.codeforces ? 'Среди множества возможных исходов найдена временная линия, ведущая к победе. Теперь вы знаете, как остановить Альтрона. Осталось воплотить этот исход' : 'Поздравляю с победой! Основные силы Альтрона уничтожены, но копии его сознания сохранились в нескольких костюмах. Запустите протокол Clean Slate, чтобы устранить угрозу окончательно'}</p><button disabled={busy || !online} onClick={() => void action(async () => {acceptMission(await post('continue-timeline',{version:mission.version,missionRun:mission.missionRun})); location.href=mission.codeforces ? '/battle-with-ultron' : '/clean-slate';})}>{mission.codeforces ? 'Воплотить' : 'Запустить Clean Slate'}</button>{error && <p role="alert">{error}</p>}</main>;
 
-   if (mission?.stage === 8 && !new URLSearchParams(location.search).has('results')) return <main><h1>Победа над Альтроном</h1>{finaleStep === 0 ? <><p>JARVIS · Невероятно. Дамми выполнил последовательность без серьёзных повреждений оборудования. Сэр, я рекомендую внести в бюджет модернизацию его манипулятора.</p><button onClick={() => setFinaleStep(1)}>Продолжить</button></> : <><h2>С 28-летием, Максим!</h2><p>Пусть впереди будет ещё больше открытий, смелых проектов и побед!</p><a href="/?results">Вернуться в лабораторию</a></>}</main>;
+   if (mission?.stage === 8 && !new URLSearchParams(location.search).has('results')) return <VictoryFinale />;
    if (mission?.stage === 7 && !showBattle) return <CleanSlate key={mission.missionRun} mission={mission.missionRun} />;
    if (showBattle) return <UltronBattle won={battleWon} />;
    const captured = mission?.stage === 4;
@@ -231,3 +232,4 @@ const isDevelopment = location.pathname === '/development';
 if (isDevelopment) document.title = 'Текущая разработка | SURKOV INDUSTRIES';
 
 if (location.pathname === '/clean-slate') document.title = 'Clean Slate / DUM-E | SURKOV INDUSTRIES';
+

@@ -1,0 +1,24 @@
+.victory-finale { position:relative; isolation:isolate; min-height:100svh; overflow:hidden; padding:clamp(28px,5vw,72px) 24px; background:#061219; color:#ddf3f5; }
+.victory-finale > .reactor-visual { position:absolute; z-index:-1; inset:15% 0 auto; margin:auto; opacity:.12; pointer-events:none; }
+.victory-content { max-width:1000px; margin:auto; text-align:center; }
+.victory-content h1 { font-size:clamp(36px,6vw,76px); line-height:1.08; margin:0; text-wrap:balance; }
+.victory-lead { font-size:clamp(19px,2vw,26px); color:#a9ced5; margin:18px 0 0; }
+.victory-stage { position:relative; width:min(100%,520px); margin:24px auto; height:280px; }
+.victory-stage .dum-e { border:0; background:none; padding:0; color:#edc27b; }
+.victory-stage .dum-e h2 { font-size:18px; margin:0; }
+.victory-stage .robot-arm { width:340px; max-width:85%; height:220px; animation:victory-arm 2s cubic-bezier(.16,1,.3,1) both; }
+.victory-module { display:block; color:#a7e6d5; font-size:14px; }
+.victory-extinguisher { position:absolute; width:150px; height:210px; right:0; top:40px; animation:victory-install 1.4s cubic-bezier(.16,1,.3,1) both; }
+.victory-foam { transform-origin:140px 145px; animation:victory-test 2.4s ease-out both; }
+.victory-message { max-width:680px; margin:32px auto; text-align:left; font-size:clamp(17px,2vw,21px); line-height:1.65; }
+.victory-message strong { color:#a7e6d5; font-size:15px; }
+.victory-message p { margin:10px 0; }
+.victory-aside { color:#a9ced5; font-size:16px; }
+.victory-action { display:inline-block; padding:16px 24px; border:1px solid #a7e6d5; border-radius:6px; background:#a7e6d5; color:#071b20; font:inherit; cursor:pointer; text-decoration:none; }
+.victory-action:hover { background:#d2fff0; }
+.victory-action:focus-visible { outline:3px solid #fff; outline-offset:5px; }
+@keyframes victory-install { from { transform:translateY(65px) rotate(-12deg); opacity:0; } to { transform:none; opacity:1; } }
+@keyframes victory-arm { from { transform:rotate(-8deg); } to { transform:none; } }
+@keyframes victory-test { 0%,60% { opacity:0; transform:scale(.3); } 80% { opacity:.85; } 100% { opacity:0; transform:scale(1.1); } }
+@media(max-width:480px) { .victory-extinguisher { width:110px; right:-10px; } .victory-stage { height:270px; } }
+@media(prefers-reduced-motion:reduce) { .victory-stage .robot-arm,.victory-extinguisher { animation:none; } .victory-foam { animation:none; opacity:0; } }
