@@ -91,12 +91,15 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
           <div className="mission-column">{children}</div>
           <section className="lab-panel" aria-labelledby="founder-achievements">
             <h2 id="founder-achievements">Личные достижения</h2>
-            <ul className="achievement-list">
-              {elementDiscovered && <li><strong>Новый химический элемент</strong><p>Архивная реконструкция завершена. Структура элемента обнаружена.</p></li>}
-              {cleanSlateComplete && <li><strong>Протокол Clean Slate</strong><p>Дамми восстановил аварийную шину. Заражённые костюмы выведены из строя.</p></li>}
-              <li><ProjectIllustration project="research" /><strong>Исследовательская программа</strong><p>Текст диссертации подготовлен.</p></li>
-              <li><ProjectIllustration project="graduate" /><strong>Аспирантура</strong><p>Аспирантура окончена.</p></li>
-              <li><ProjectIllustration project="algorithms" /><strong>Алгоритмическая школа</strong><p>4 из 13 стажёров завершили первый раунд и повысили рейтинг на Codeforces.</p></li>
+            <p id="achievement-help">Листайте ленту. Новые достижения открываются по ходу миссии.</p>
+            <ul className="achievement-list scroll-row" tabIndex={0} aria-labelledby="founder-achievements" aria-describedby="achievement-help">
+              <li><ProjectIllustration project="research" /><strong>Исследовательская программа</strong><p>Текст диссертации подготовлен. Пока другие ждали вдохновения, вы превратили идеи в результат. Гений умеет доводить работу до последней точки.</p></li>
+              <li><ProjectIllustration project="graduate" /><strong>Аспирантура</strong><p>Аспирантура окончена. Одного таланта на этой дистанции было бы мало — поэтому вы добавили характер. Пора снова поднимать потолок возможностей.</p></li>
+              <li><ProjectIllustration project="algorithms" /><strong>Алгоритмическая школа</strong><p>4 из 13 стажёров завершили первый раунд и повысили рейтинг на Codeforces. Решать сложные задачи — привычный масштаб. Учить этому других — почерк основателя.</p></li>
+              {elementDiscovered && <li><ProjectIllustration project="new-element" /><strong>Новый химический элемент</strong><p>Архивная реконструкция завершена: структура элемента найдена. Периодическая таблица явно не рассчитывала на ваше вмешательство. У будущего появился новый источник энергии.</p></li>}
+              {cleanSlateComplete && <li><ProjectIllustration project="planetary-defense" /><strong>Планетарная защита</strong><p>Планетарная защита выстроена. Масштаб «весь мир» наконец соответствует вашим амбициям. Можно выдохнуть — планета сегодня остаётся на месте.</p></li>}
+              {cleanSlateComplete && <li><ProjectIllustration project="defeat-ultron" /><strong>Победа над Альтроном</strong><p>Дамми восстановил аварийную шину, заражённые костюмы выведены из строя. Альтрон просчитал многое, но недооценил вашу команду. Лаборатория снова принадлежит своему создателю.</p></li>}
+              {cleanSlateComplete && <li><ProjectIllustration project="iron-man" /><strong>Вы — Железный человек</strong><p>Миссия завершена. Броню можно заменить, реактор — усовершенствовать, но человека внутри ничем не заменить. Сегодня всем ясно, кто здесь Железный человек.</p></li>}
             </ul>
           </section>
           {!captured && <Dummy />}

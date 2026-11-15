@@ -212,15 +212,18 @@ main:not(:has(.reactor-visual))::before,
 .system-nodes li > span { grid-column: 2; margin: 0; }
 .system-nodes a { text-underline-offset: 3px; }
 .achievement-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
-  gap: 12px;
-  align-items: start;
-  overflow: visible;
-  padding: 0;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding: 4px 2px 18px;
+  scroll-snap-type: x proximity;
 }
-.achievement-list li { padding: 8px 10px 10px; background: #0b2832b3; }
-.achievement-list p { margin-top: 4px; }
+.founder-lab .achievement-list li { flex: 0 0 min(320px, 78vw); padding: 20px; background: #0b2832; border: 1px solid #548598; }
+.achievement-list li strong { display: block; min-height: 2.8em; line-height: 1.4; }
+.achievement-list p { margin-top: 12px; font-size: 14px; color: #c1dce5; }
+.achievement-list .project-illustration { height: 96px; margin-bottom: 20px; }
+.lab-panel { min-width: 0; }
 .project-illustration {
   display: block;
   width: 100%;
