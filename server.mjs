@@ -165,7 +165,7 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
     return res.end();
    }
    const page=path==='/prototype_v2'||path==='/prototype_v2/'?'/prototype_v2/index.html':
-    ['/', '/control', '/archive', '/development', '/clean-slate', '/battle-with-ultron'].includes(path)?'/index.html':path;
+    ['/', '/control', '/archive', '/development', '/clean-slate', '/battle-with-ultron', '/timelines', '/timelines/', '/timelines/debug', '/timelines/debug/'].includes(path)?'/index.html':path;
    const file=resolve(root,'.'+page);
    if(!file.startsWith(root+'/')&&!file.startsWith(root+'\\')) return send(404,{});
    try {res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css'})[extname(file)]||'application/octet-stream');res.end(readFileSync(file));}catch{return send(404,{error:'Не найдено'});}
