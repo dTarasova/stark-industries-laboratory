@@ -8,12 +8,12 @@ export function validate(r: Route): string[] {
  return errors;
 }
 export function normalize(r: Route): Route {return {...r,choices:Object.fromEntries(events.filter(e=>e.choices.some(c=>c.key===r.choices[e.id])).map(e=>[e.id,r.choices[e.id]]))};}
-export function simulate(r: Route) {
- const errors=validate(r); if(errors.length) throw Error(errors.join('\n'));
+export function simulate(r: Route, checkpoint?: {until:string; visit:(log:Snapshot[])=>never}) {
+ const errors=validate(r).filter(error=>!checkpoint || !events.some(e=>error.startsWith(`Выберите вариант ${e.id}:`) && events.indexOf(e)>events.findIndex(x=>x.id===(checkpoint.until==='10'?'09':checkpoint.until)))); if(errors.length) throw Error(errors.join('\n'));
  const c=r.choices;const is=(id:string,k:string)=>c[id]===k;const tony=is('01','Б');
  let time=0,power=0;const destroyed=new Set<number>(),saved=new Set<number>();
- const log: {event:string;text:string;time:number;power:number}[]=[];
- const record=(event:string,text:string)=>log.push({event,text,time,power});
+ const log:Snapshot[]=[];
+ const record=(event:string,text:string)=>{const before=log.at(-1);const effects={time:time-(before?.time??0),power:power-(before?.power??0),saved:[...saved].filter(d=>!before?.saved.includes(d)),destroyed:[...destroyed].filter(d=>!before?.destroyed.includes(d))};log.push({event,text,time,power,saved:[...saved],destroyed:[...destroyed],effects});if(event===checkpoint?.until)checkpoint.visit(log);};
  const add=(id:string,t:number,p:number,text:string)=>{time+=t;power+=p;record(id,text);};
  const loss=(protect=false)=>{const d=r.losses.find(d=>!destroyed.has(d)&&!(protect&&d===1));if(d!==undefined)destroyed.add(d);};
  const rescue=(eligible:(d:number)=>boolean=()=>true)=>{const d=r.evacuation.find(d=>!saved.has(d)&&eligible(d));if(d!==undefined)saved.add(d);};
@@ -66,3 +66,11 @@ export type Result=ReturnType<typeof simulate>;
 export type Entry={id:string;date:string;route:Route;result:Result};
 export type Save={version:1;route:Route;archive:Entry[];screen:string;opened:string[];physical:boolean;active:string|null};
 export function restore(raw:string|null):Save {const fallback:Save={version:1,route:emptyRoute(),archive:[],screen:'intro',opened:[],physical:false,active:null};try{const s=JSON.parse(raw||'null');if(s?.version!==1||!Array.isArray(s.archive))return fallback;const route=normalize(s.route);if(!Array.isArray(route.evacuation)||!Array.isArray(route.losses))return fallback;const archive=s.archive.filter((e:Entry)=>typeof e.id==='string'&&validate(e.route).length===0).map((e:Entry)=>({...e,result:simulate(e.route)}));return {...fallback,...s,route,archive,opened:Array.isArray(s.opened)?s.opened:[],screen:['intro','edit','archive','simulation','consequences','result'].includes(s.screen)?s.screen:'edit'};}catch{return fallback;}}
+
+export type Snapshot={event:string;text:string;time:number;power:number;saved:number[];destroyed:number[];effects?:{time:number;power:number;saved:number[];destroyed:number[]}};
+export function simulatePrefix(route:Route, until:string):Snapshot[] {
+ if(until!=='10'&&!events.some(e=>e.id===until))throw Error('Неизвестное событие');
+ const stopped={};let snapshots:Snapshot[]=[];
+ try {simulate(route,{until,visit:log=>{snapshots=log;throw stopped;}});}catch(error){if(error!==stopped)throw error;}
+ return snapshots;
+}

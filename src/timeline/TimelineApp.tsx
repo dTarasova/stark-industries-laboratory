@@ -1,3 +1,4 @@
+import {ChapterExperience} from './ChapterExperience';
 import {useEffect,useState} from 'react';
 import {events,finals} from './data';
 import {districts,emptyRoute,normalize,restore,simulate,validate,type Route,type Entry} from './engine';
@@ -34,7 +35,7 @@ function resolvedNarrative(id:string,e:Entry){
  }
  return s.network==='active'?between('Если легион','**РЕЗУЛЬТАТ: КРИТИЧЕСКАЯ')+'\n**РЕЗУЛЬТАТ: КРИТИЧЕСКАЯ АНОМАЛИЯ. РЕЗЕРВНАЯ СЕТЬ НЕ УНИЧТОЖЕНА.**':between('**Иначе:**','---');
 }
-export function TimelineApp(){
+function PaperApp(){
  const [state,setState]=useState(()=>{try{return restore(localStorage.getItem(storageKey));}catch{return restore(null);}});
  const [node,setNode]=useState(0),[mode,setMode]=useState<'step'|'paper'>('paper'),[input,setInput]=useState(''),[error,setError]=useState(''),[compare,setCompare]=useState<string[]>([]);
  const debug=location.pathname==='/timelines/debug';const devReady=true;
@@ -61,3 +62,5 @@ export function TimelineApp(){
  {state.screen==='archive'&&<><h1>Архив временных линий</h1><p>Исследовано: {state.archive.length}. Уникальных основных маршрутов: {new Set(state.archive.map(e=>events.filter(x=>x.id!=='05P'||e.result.vision).map(x=>e.route.choices[x.id]).join(''))).size}</p>{state.archive.length===0&&<p>Здесь появятся завершённые симуляции.</p>}{state.archive.map((e,i)=><article key={e.id}><h2>Линия #{String(i+1).padStart(3,'0')} · {e.result.quality}</h2><p>{new Date(e.date).toLocaleString('ru-RU')} · Спасено {e.result.saved.length}/4 · Разрушено {e.result.destroyed.length}/4</p><button onClick={()=>setState(s=>({...s,active:e.id,screen:'result'}))}>Открыть результат и отчёт</button><button onClick={()=>fork(e)}>Создать на её основе</button><label><input type="checkbox" checked={compare.includes(e.id)} onChange={v=>setCompare(v.target.checked?[...compare.slice(-1),e.id]:compare.filter(x=>x!==e.id))}/>Сравнить</label></article>)}{compare.length===2&&<div className="tl-table"><h2>Сравнение маршрутов</h2><table><thead><tr><th>Событие</th>{compare.map(id=><th key={id}>{state.archive.find(e=>e.id===id)?.result.quality}</th>)}</tr></thead><tbody>{events.map(e=><tr key={e.id}><th>{e.id} · {e.title}</th>{compare.map(id=><td key={id}>{state.archive.find(a=>a.id===id)?.route.choices[e.id]}</td>)}</tr>)}</tbody></table></div>}<h2>Неисследованные аномалии</h2>{anomalyNames.map((name,i)=>{const found=state.archive.find(e=>e.result.anomalies.includes(`A0${i+1}`));return <p key={name}>{found?'Открыто':'Закрыто'} · {name}{found&&<button onClick={()=>setState(s=>({...s,active:found.id,screen:'result'}))}>Линия #{state.archive.indexOf(found)+1}</button>}</p>;})}<button onClick={()=>fork()}>Создать новую линию</button></>}
  </>}</main>;
 }
+
+export function TimelineApp(){const [paper,setPaper]=useState(location.pathname.endsWith('/debug'));return <><div className="tl-mode"><button onClick={()=>setPaper(!paper)}>{paper?'Прохождение по главам':'Перенести маршрут с бумаги'}</button></div>{paper?<PaperApp/>:<ChapterExperience/>}</>;}
