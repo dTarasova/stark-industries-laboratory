@@ -1,1 +1,30 @@
-{"name":"surkov-laboratory","private":true,"type":"module","scripts":{"dev":"vite --host 127.0.0.1","build":"tsc --noEmit && vite build","start":"node --env-file-if-exists=.env server.mjs","test":"node --test"},"dependencies":{"react":"^19.0.0","react-dom":"^19.0.0","three":"0.180.0"},"devDependencies":{"@types/react":"^19.0.0","@types/react-dom":"^19.0.0","@types/three":"0.180.0","typescript":"^5.7.0","vite":"^6.0.0"}}
+{
+  "name": "surkov-laboratory",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "test": "node --test",
+    "cf:login": "npx --yes wrangler@4 login",
+    "cf:db:create": "npx --yes wrangler@4 d1 create surkov-laboratory",
+    "cf:migrate": "npx --yes wrangler@4 d1 migrations apply DB --remote",
+    "cf:migrate:local": "npx --yes wrangler@4 d1 migrations apply DB --local",
+    "cf:dev": "npm run build && npm run cf:migrate:local && npx --yes wrangler@4 dev",
+    "cf:deploy": "npm run cf:migrate && npx --yes wrangler@4 deploy",
+    "cf:test": "node --test worker.test.mjs"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "0.180.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}

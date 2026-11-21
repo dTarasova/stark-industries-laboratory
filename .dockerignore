@@ -5,3 +5,6 @@ data
 .env.*
 .git
 *.log
+.wrangler
+.dev.vars
+.dev.vars.*

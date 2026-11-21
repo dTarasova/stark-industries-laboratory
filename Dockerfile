@@ -6,14 +6,14 @@ COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
 COPY prototype_v2/index.html prototype_v2/scene.js prototype_v2/puzzle_data.json ./prototype_v2/
 RUN npm run build
-COPY server.mjs server.test.mjs element.test.mjs clean-slate.test.mjs ./
+COPY server.mjs api.mjs auth.mjs server.test.mjs element.test.mjs clean-slate.test.mjs ./
 RUN npm test
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
 ENV PORT=3000
 COPY --from=build --chown=node:node /app/dist ./dist
-COPY --chown=node:node server.mjs ./
+COPY --chown=node:node server.mjs api.mjs auth.mjs ./
 RUN mkdir -p /app/data && chown node:node /app/data
 USER node
 EXPOSE 3000
