@@ -1,3 +1,4 @@
+import {events} from './data';
 import type {Route,Snapshot} from './engine';
 export function consequenceText(route:Route,event:Snapshot,log:Snapshot[]){
  const c=route.choices;const wanda=log.find(e=>e.event==='04')?.text||'';
@@ -18,5 +19,6 @@ export function consequenceText(route:Route,event:Snapshot,log:Snapshot[]){
  '10':`Эвакуация проведена по приоритету районов с учётом оставшегося времени и стратегии. ${c['04']==='В'?'Договорённость Ванды теперь помогла спасти жителей центра.':''} ${['Б','Г'].includes(c['02'])?'Подготовка команды обеспечила отдельное спасение жителей.':''} ${vision&&c['05P']==='В'?'Вижен использовал доступное отвлечение для помощи эвакуации.':''}`,
  '11':c['11']==='А'?'Команда изолировала сеть. Автономные копии остаются внутри изолированного контура.':c['11']==='Б'?(vision||data?'Команда использовала Вижена или сохранённые данные для поиска копий. Ловушку удалось предотвратить только при принципе Сомнения у Вижена без зависимости от данных.':'Без Вижена и сохранённых данных найти автономные копии не удалось.'):(c['01']==='Б'&&!vision?'Протоколы Тони без контроля Вижена позволили Альтрону заразить сеть.':'Команда применила сетевые протоколы для уничтожения копий.')
  };
- return {dialogue:`ДЖАРВИС: «Отчёт по операции готов».`,explanation:reasons[event.event]||event.text};
+ const original=['01','02','03'].includes(event.event)?events.find(e=>e.id===event.event)?.choices.find(x=>x.key===c[event.event])?.back.split('**РЕЗУЛЬТАТ')[0]:null;
+ return {dialogue:original??`ДЖАРВИС: «Отчёт по операции готов».`,explanation:reasons[event.event]||event.text};
 }
