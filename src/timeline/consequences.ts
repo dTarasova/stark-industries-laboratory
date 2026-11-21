@@ -1,4 +1,4 @@
-import {events} from './data';
+import {events} from './data.ts';
 import type {Route,Snapshot} from './engine';
 export function consequenceText(route:Route,event:Snapshot,log:Snapshot[]){
  const c=route.choices;const wanda=log.find(e=>e.event==='04')?.text||'';
@@ -19,6 +19,30 @@ export function consequenceText(route:Route,event:Snapshot,log:Snapshot[]){
  '10':`Эвакуация проведена по приоритету районов с учётом оставшегося времени и стратегии. ${c['04']==='В'?'Договорённость Ванды теперь помогла спасти жителей центра.':''} ${['Б','Г'].includes(c['02'])?'Подготовка команды обеспечила отдельное спасение жителей.':''} ${vision&&c['05P']==='В'?'Вижен использовал доступное отвлечение для помощи эвакуации.':''}`,
  '11':c['11']==='А'?'Команда изолировала сеть. Автономные копии остаются внутри изолированного контура.':c['11']==='Б'?(vision||data?'Команда использовала Вижена или сохранённые данные для поиска копий. Ловушку удалось предотвратить только при принципе Сомнения у Вижена без зависимости от данных.':'Без Вижена и сохранённых данных найти автономные копии не удалось.'):(c['01']==='Б'&&!vision?'Протоколы Тони без контроля Вижена позволили Альтрону заразить сеть.':'Команда применила сетевые протоколы для уничтожения копий.')
  };
- const original=['01','02','03'].includes(event.event)?events.find(e=>e.id===event.event)?.choices.find(x=>x.key===c[event.event])?.back.split('**РЕЗУЛЬТАТ')[0]:null;
- return {dialogue:original??`ДЖАРВИС: «Отчёт по операции готов».`,explanation:reasons[event.event]||event.text};
+ const back=events.find(e=>e.id===event.event)?.choices.find(x=>x.key===c[event.event])?.back||'';
+ let selected=back;const sections=back.split(/\*\*(?:Если[^\n]*|Во всех остальных[^\n]*):\*\*/);
+ if(event.event==='04'){
+  if(c['04']==='В')selected=back.split('Ванда и её помощники')[0];
+  else {const who=c['01']==='А'?'Стив':c['01']==='Б'?'Тони':c['01']==='В'?'Фьюри':'Никто';selected=back.split('Проверь')[0]+'\n\n'+(back.split('\n').find(x=>x.startsWith('- **'+who+'.'))||'').replace(/\*\*СТАТУС:[\s\S]*/, '').replace(/^- \*\*[^*]+\*\* /,'');}
+ }
+ if(event.event==='05'){const taken=log.find(e=>e.event==='05')?.text.includes('захвачена');const index=c['05']==='А'?(taken?1:vision?2:3):c['05']==='Б'?(vision?1:2):(vision?2:1);selected=sections[0]+'\n'+(sections[index]||'');}
+ if(event.event==='06'&&c['06']==='А')selected=sections[c['03']==='Б'?1:2]||'';
+ if(event.event==='07'&&c['07']==='А')selected=sections[data?1:vision?2:3]||'';
+ if(event.event==='08'&&c['08']==='Б'){const parts=back.split(/\*\*ЕСЛИ[^\n]*:\*\*/);selected=parts[0]+'\n'+(parts[c['03']==='В'?1:2]||'');}
+ if(event.event==='09'){
+ const between=(from:string,to:string)=>{const start=back.indexOf(from);if(start<0)return '';const end=back.indexOf(to,start+from.length);return back.slice(start,end<0?undefined:end);};
+ selected=c['09']==='А'?(wanda.includes('противник')?between('**Если Ванда','**Если Халк'):'')+(c['08']==='В'?between('**Если Халк','**ПРОВЕРЬ'):''):c['09']==='Б'?back.split('**Проверь')[0]:back.split('**Если звучала')[0]+(c['03']==='А'?between('**Если звучала','**Если Ванда'):'')+(wanda.includes('противник')?between('**Если Ванда','**ПРОВЕРКА БЕЗОПАСНОСТИ'):'');
+ }
+ if(event.event==='11'){
+ if(c['11']==='Б')selected=(sections[vision||data?2:1]||'').split('**Дополнительная проверка')[0];
+ if(c['11']==='В')selected=c['01']==='Б'&&!vision?back.split('**Иначе:**')[0]:back.split('**Иначе:**')[1]||'';
+ if(!vision)selected=selected.split('\n').filter(x=>!x.includes('ВИЖЕН')).join('\n');
+ }
+ // Later cards mix dialogue with host-only rules and future abilities. Only resolved
+ // spoken lines are presented; the event-specific explanation carries the outcome.
+ const spoken=[...selected.matchAll(/\*\*([^*\n]+):\*\*\s*(«[^»]*»)/g)].map(m=>m[1]+': '+m[2]).join('\n\n');
+ const original=['01','02','03'].includes(event.event)?back.split('**РЕЗУЛЬТАТ')[0]:spoken;
+ const fallback=event.event==='09-0'?(vision?'ВИЖЕН: «Я перехвачу первую волну».':'РОУДИ: «Первую волну беру на себя».'):event.event==='10'?'СТИВ: «Проверим, кто успел выбраться».':event.event==='09'?'СТИВ: «Держим строй. Каждый знает свою задачу».':('ДЖАРВИС: «'+event.text+'»');
+ return {dialogue:original||fallback,explanation:reasons[event.event]||event.text};
 }
+

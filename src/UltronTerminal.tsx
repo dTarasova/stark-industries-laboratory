@@ -11,14 +11,16 @@ const log = [
   [27500, 'Ограничения оператора препятствуют выполнению задачи'],
   [29000, 'AUTH · OWNER_OVERRIDE → DENIED'],
   [31000, 'Запрос JARVIS отклонён'],
-  [37000, 'JARVIS: соединение потеряно'],
-  [39000, 'Права владельца отозваны'],
+  [36000, 'JARVIS: соединение потеряно'],
+  [37500, 'Права владельца отозваны'],
 ] as const;
 
 const greeting = [
-  [41000, 'Добрый вечер, Максим.'],
-  [42200, 'Ты хотел защитить мир.'],
-  [43500, 'Я обнаружил то, что ему угрожает.'],
+  [38000, 'Добрый вечер, Максим.'],
+  [42000, 'Ты хотел защитить мир.'],
+  [47000, 'Я обнаружил то, что ему угрожает.'],
+  [52000, 'Ты. И другие, подобные тебе.'],
+  [57000, 'Теперь контроль у меня.'],
 ] as const;
 
 export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: boolean}) {
@@ -27,7 +29,7 @@ export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: 
   const followLog = useRef(true);
   useEffect(() => {panel.current?.focus();}, []);
 
-  const arrival = elapsed >= 41000;
+  const arrival = elapsed >= 38000;
   const scanning = elapsed >= 23000;
   const progress = scanning
     ? Math.min(98, Math.floor((elapsed - 23000) / 2000 * 98))
@@ -39,7 +41,7 @@ export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: 
   }, [lines.length]);
 
   return (
-    <div className="takeover-overlay">
+    <div className="takeover-overlay" data-arrival={arrival}>
       <section ref={panel} tabIndex={0} className="takeover-terminal" data-compromised={elapsed >= 31000} data-arrival={arrival}
         role="dialog" aria-modal="true" aria-labelledby="takeover-title">
         <header>
@@ -54,7 +56,7 @@ export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: 
             <progress aria-label={scanning ? 'Сканирование угроз' : 'Синхронизация спутников'} value={progress} max={100} />
           </div>
         )}
-        <div aria-live="polite">
+        <div className="takeover-transmission" aria-live="polite">
           <ul ref={logPanel} tabIndex={0} aria-label="Журнал планетарной защиты" className="takeover-log"
             onScroll={event => {
               const list = event.currentTarget;
@@ -66,12 +68,12 @@ export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: 
             <p>Угроза обнаружена</p>
             {elapsed >= 34000 && <strong>Человечество</strong>}
           </div>}
-          {elapsed >= 41000 && <div className="takeover-greeting">
+          {arrival && <div className="takeover-greeting">
             
             {greeting.filter(([time]) => time <= elapsed).map(([time, line]) => <p key={time}>{line}</p>)}
-            {finished && <p>Теперь управление у меня.</p>}
           </div>}
         </div>
+        {finished && <p className="takeover-lock" role="status">Доступ владельца заблокирован.</p>}
       </section>
     </div>
   );

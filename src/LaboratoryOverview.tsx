@@ -16,7 +16,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
   captured?: boolean;
   cleanSlateComplete?: boolean;
 }) {
-  const [scanState, setScan] = useState<'ready' | 'scanning' | 'done'>('ready');
+  const [scanState, setScan] = useState<'ready' | 'scanning' | 'done'>(stage === 0 ? 'ready' : 'done');
   const scan = captured ? 'done' : scanState;
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<string[]>([]);
@@ -84,7 +84,6 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
         </div>
         <div className="reactor-visual" aria-hidden="true" data-upgraded={elementDiscovered} />
       </div>
-      {scan !== 'done' && <Dummy />}
       {scan === 'done' && (
         <div className="lab-workspace">
           <LaboratorySystems stage={stage} edithUnlocked={edithUnlocked} elementDiscovered={elementDiscovered} onDiagnosis={announce}/>
@@ -93,10 +92,10 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
             <h2 id="founder-achievements">Личные достижения</h2>
             <p id="achievement-help">Листайте ленту. Новые достижения открываются по ходу миссии.</p>
             <ul className="achievement-list scroll-row" tabIndex={0} aria-labelledby="founder-achievements" aria-describedby="achievement-help">
+              {elementDiscovered && <li><ProjectIllustration project="new-element" /><strong>Новый химический элемент</strong><p>Архивная реконструкция завершена: структура элемента найдена. Периодическая таблица явно не рассчитывала на ваше вмешательство. У будущего появился новый источник энергии.</p></li>}
               <li><ProjectIllustration project="research" /><strong>Исследовательская программа</strong><p>Текст диссертации подготовлен. Пока другие ждали вдохновения, вы превратили идеи в результат. Гений умеет доводить работу до последней точки.</p></li>
               <li><ProjectIllustration project="graduate" /><strong>Аспирантура</strong><p>Аспирантура окончена. Одного таланта на этой дистанции было бы мало — поэтому вы добавили характер. Пора снова поднимать потолок возможностей.</p></li>
               <li><ProjectIllustration project="algorithms" /><strong>Алгоритмическая школа</strong><p>4 из 13 стажёров завершили первый раунд и повысили рейтинг на Codeforces. Решать сложные задачи — привычный масштаб. Учить этому других — почерк основателя.</p></li>
-              {elementDiscovered && <li><ProjectIllustration project="new-element" /><strong>Новый химический элемент</strong><p>Архивная реконструкция завершена: структура элемента найдена. Периодическая таблица явно не рассчитывала на ваше вмешательство. У будущего появился новый источник энергии.</p></li>}
               {cleanSlateComplete && <li><ProjectIllustration project="planetary-defense" /><strong>Планетарная защита</strong><p>Планетарная защита выстроена. Масштаб «весь мир» наконец соответствует вашим амбициям. Можно выдохнуть — планета сегодня остаётся на месте.</p></li>}
               {cleanSlateComplete && <li><ProjectIllustration project="defeat-ultron" /><strong>Победа над Альтроном</strong><p>Дамми восстановил аварийную шину, заражённые костюмы выведены из строя. Альтрон просчитал многое, но недооценил вашу команду. Лаборатория снова принадлежит своему создателю.</p></li>}
               {cleanSlateComplete && <li><ProjectIllustration project="iron-man" /><strong>Вы — Железный человек</strong><p>Миссия завершена. Броню можно заменить, реактор — усовершенствовать, но человека внутри ничем не заменить. Сегодня всем ясно, кто здесь Железный человек.</p></li>}

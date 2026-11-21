@@ -3,7 +3,7 @@ import {useEffect,useState} from 'react';
 import {events,finals} from './data';
 import {districts,emptyRoute,normalize,restore,simulate,validate,type Route,type Entry} from './engine';
 import './timeline.css';
-const storageKey='surkov.timelines.v1';
+
 const anomalyNames=['Неожиданный союзник Альтрона','Протокол, который Тони никогда не должен был запускать','Инцидент с асгардской дипломатией','Альтернативная судьба Вижена','Последний день Мстителей','Победа, которой не должно было быть','Последний разговор с Альтроном'];
 function Text({text}:{text:string}) {return <div className="tl-prose">{text.replace(/\*\*|`/g,'').split(/\n\s*\n/).filter(p=>p.trim()&&p.trim()!=='---').map((p,i)=><p key={i}>{p}</p>)}</div>;}
 function selectedBack(event:string,back:string,entry:Entry) {
@@ -35,7 +35,8 @@ function resolvedNarrative(id:string,e:Entry){
  }
  return s.network==='active'?between('Если легион','**РЕЗУЛЬТАТ: КРИТИЧЕСКАЯ')+'\n**РЕЗУЛЬТАТ: КРИТИЧЕСКАЯ АНОМАЛИЯ. РЕЗЕРВНАЯ СЕТЬ НЕ УНИЧТОЖЕНА.**':between('**Иначе:**','---');
 }
-function PaperApp(){
+function PaperApp({mission=0}:{mission?:number}){
+ const storageKey=`surkov.timelines.v1:${mission}`;
  const [state,setState]=useState(()=>{try{return restore(localStorage.getItem(storageKey));}catch{return restore(null);}});
  const [node,setNode]=useState(0),[mode,setMode]=useState<'step'|'paper'>('paper'),[input,setInput]=useState(''),[error,setError]=useState(''),[compare,setCompare]=useState<string[]>([]);
  const debug=location.pathname==='/timelines/debug';const devReady=true;
@@ -63,4 +64,12 @@ function PaperApp(){
  </>}</main>;
 }
 
-export function TimelineApp(){const [paper,setPaper]=useState(location.pathname.endsWith('/debug'));return <><div className="tl-mode"><button onClick={()=>setPaper(!paper)}>{paper?'Прохождение по главам':'Перенести маршрут с бумаги'}</button></div>{paper?<PaperApp/>:<ChapterExperience/>}</>;}
+function TimelineWorkspace({mission}:{mission:number}){return location.pathname.endsWith('/debug')?<PaperApp mission={mission}/>:<ChapterExperience mission={mission}/>;}
+
+export function TimelineApp(){
+ const [mission,setMission]=useState<{missionRun:number;stage:number}>();
+ useEffect(()=>{let stopped=false;async function refresh(){try{const r=await fetch('/api/mission');if(r.ok && !stopped)setMission(await r.json());}catch{}}void refresh();const timer=setInterval(refresh,2000);return()=>{stopped=true;clearInterval(timer);};},[]);
+ if(!mission)return <main><p role="status">Получаем состояние миссии…</p></main>;
+ if(mission.stage!==5)return <main><h1>Временные линии</h1><p>Следуйте текущему этапу миссии.</p><a href="/">В лабораторию</a></main>;
+ return <TimelineWorkspace key={mission.missionRun} mission={mission.missionRun}/>;
+}

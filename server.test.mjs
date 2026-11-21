@@ -30,7 +30,7 @@ test('Общая миссия, защита и сохранение после �
  }finally{if(server.listening) await new Promise(r=>server.close(r));rmSync(dir,{recursive:true});}
 });
 
-test('Защита запускается один раз после допуска, а резервный канал открывается автоматически', async ({mock}) => {
+test('Захват длится минуту и остаётся до ручного открытия резервного канала', async ({mock}) => {
  mock.timers.enable({apis: ['Date']});
  const server = laboratory({database: ':memory:', password: 'test-password-only-123'});
  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -52,12 +52,20 @@ test('Защита запускается один раз после допус�
   assert.ok(mission.takeoverEndsAt > mission.serverTime);
   assert.equal((await post('open-recovery', {version: 3})).status, 401);
   assert.equal((await post('open-recovery', {version: 3}, cookie)).status, 409);
-  mock.timers.tick(45_000);
+  assert.equal(mission.takeoverDuration, 60_000);
+  mock.timers.tick(59_999);
+  assert.equal((await post('open-recovery', {version: 3}, cookie)).status, 409);
+  mock.timers.tick(1);
   const locked = await (await fetch(base + 'mission')).json();
-  assert.equal(locked.stage, 5);
+  assert.equal(locked.stage, 4);
+  assert.equal(locked.version, 3);
   assert.equal(locked.takeoverEndsAt, mission.takeoverEndsAt);
+  mock.timers.tick(60_000);
+  assert.equal((await (await fetch(base + 'mission')).json()).stage, 4);
   const recovery = await post('open-recovery', {version: 3}, cookie);
-  assert.equal(recovery.status, 409);
+  assert.equal(recovery.status, 200);
+  assert.equal((await recovery.json()).stage, 5);
+  assert.equal((await post('open-recovery', {version: 3}, cookie)).status, 409);
  } finally {
   await new Promise(resolve => server.close(resolve));
  }
@@ -142,7 +150,7 @@ test('Обе ветки сквозного сценария сохраняют �
    assert.equal(m.victory,1);
    assert.equal(m.timelineFound,1);
    await post('mission',{stage:0,version:m.version},cookie);
-   assert.equal((await get()).victory,1);
+   assert.equal((await get()).victory,0);
   } finally {await new Promise(resolve=>server.close(resolve));}
  }
 });
@@ -166,4 +174,29 @@ test('Cloudflare: лимит входа доверяет IP только от з
    }
   } finally { await new Promise(resolve => server.close(resolve)); }
  }
+});
+
+test('Аварийные этапы восстанавливают открытия, Restart очищает миссию и отвергает старое завершение', async () => {
+ const server=laboratory({database:':memory:',password:'test-password-only-123'});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const base=`http://127.0.0.1:${server.address().port}/api/`;
+ const post=(path,body,cookie='')=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json',cookie},body:JSON.stringify(body)});
+ const get=async()=>(await fetch(base+'mission')).json();
+ try {
+  const login=await post('login',{password:'test-password-only-123'});const cookie=login.headers.get('set-cookie').split(';')[0];
+  assert.equal((await post('restart',{version:0})).status,401);
+  await post('mission',{stage:2,version:0},cookie);
+  let m=await get();assert.equal(m.edithUnlocked,true);assert.equal(m.elementDiscovered,0);
+  assert.equal((await post('element-complete',{version:m.version,missionRun:m.missionRun})).status,200);
+  m=await get();assert.equal(m.elementDiscovered,1);
+  await post('mission',{stage:8,version:m.version},cookie);m=await get();assert.equal(m.victory,1);
+  await post('mission',{stage:5,version:m.version},cookie);m=await get();
+  assert.equal(m.elementDiscovered,1);assert.equal(m.timelineFound,0);assert.equal(m.victory,0);assert.deepEqual(m.recoveryHints,[]);
+  await post('mission',{stage:1,version:m.version},cookie);m=await get();assert.equal(m.edithUnlocked,false);assert.equal(m.elementDiscovered,0);
+  await post('badge',{badge:0,active:true,version:m.version},cookie);m=await get();
+  const oldRun=m.missionRun;
+  assert.equal((await post('restart',{version:m.version},cookie)).status,200);m=await get();
+  assert.equal(m.stage,0);assert.equal(m.badges,0);assert.equal(m.edithUnlocked,false);assert.equal(m.victory,0);assert.notEqual(m.missionRun,oldRun);
+  assert.equal((await post('element-complete',{version:m.version,missionRun:oldRun})).status,409);
+ } finally {await new Promise(r=>server.close(r));}
 });

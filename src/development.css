@@ -9,3 +9,8 @@
   height: 90dvh;
   border: 0;
 }
+
+.development-navigation { border-bottom: 1px solid #456c7a; background: #071923; }
+.development-navigation header { max-width: 1600px; margin: auto; padding: 12px 24px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.development-navigation header a { margin-left: auto; min-height: 44px; display: inline-flex; align-items: center; }
+.development-navigation + .development-puzzle { height: calc(100dvh - 69px); }

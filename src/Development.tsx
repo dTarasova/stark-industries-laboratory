@@ -48,10 +48,9 @@ export function Development({unlocked, onUnlock, mission}: {
 
   return (
     <>
-      <Entry className="development-entry">
-        <header><span>SURKOV INDUSTRIES</span><a href="/">Лаборатория</a></header>
-        <h1>Текущая разработка</h1>
-        {unlocked ? <p role="status">EDITH · Доступ открыт</p> : (
+      <Entry className={unlocked ? "development-navigation" : "development-entry"}>
+        <header><span>SURKOV INDUSTRIES</span><span>Текущая разработка</span><a href="/">Лаборатория</a></header>
+        {!unlocked && (
           <form className="development-access" onSubmit={submit}>
             <h2>Доступ закрыт · EDITH</h2>
             <label>

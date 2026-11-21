@@ -5,7 +5,7 @@ import {mkdirSync, readFileSync} from 'node:fs';
 import {resolve, extname} from 'node:path';
 import {isIP} from 'node:net';
 export const stages = ['Знакомство с лабораторией','EDITH — текущая разработка','Новый элемент','Защита Земли','Атака Альтрона','Временные линии','Восстановление JARVIS','Clean Slate','Победа'];
-const takeoverDuration = 45_000;
+const takeoverDuration = 60_000;
 export function laboratory({database='data/mission.sqlite',password,edithCode,secure=false,trustedProxy=''}) {
  if (!password || password.length < 16) throw Error('Задайте ADMIN_PASSWORD длиной от 16 символов');
  const db=new DatabaseSync(database); db.exec('CREATE TABLE IF NOT EXISTS mission (id INTEGER PRIMARY KEY CHECK(id=1), stage INTEGER NOT NULL, version INTEGER NOT NULL); INSERT OR IGNORE INTO mission (id,stage,version) VALUES(1,0,0)');
@@ -37,7 +37,6 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
  const sessions=new Map(); const attempts=new Map();
  const state=()=>db.prepare('SELECT stage,version,badges FROM mission WHERE id=1').get();
  const publicMission = () => {
-  db.prepare("UPDATE mission SET stage=5, version=version+1 WHERE stage=4 AND takeoverEndsAt IS NOT NULL AND takeoverEndsAt<=?").run(Date.now());
   const {edithUnlocked, recoveryHints, ...mission} = db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked,missionRun,recoveryRequested,recoveryHints,ultronBattle,elementDiscovered,timelineFound,victory,codeforces FROM mission WHERE id=1').get();
   return {...mission, recoveryHints: JSON.parse(recoveryHints), edithUnlocked: Boolean(edithUnlocked), stages, takeoverDuration, serverTime: Date.now()};
  };
@@ -147,14 +146,18 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
       .run(~mask, active ? mask : 0, version);
      return send(result.changes ? 200 : 409, result.changes ? state() : {error:'Миссия уже изменилась. Проверьте статус бейджа и повторите.'});
     }
-    if(path!=='/api/mission') return send(404,{error:'Не найдено'});
+    if(path==='/api/restart') body.stage=0;
+    if(path!=='/api/mission' && path!=='/api/restart') return send(404,{error:'Не найдено'});
     if(!Number.isInteger(body.stage)||body.stage<0||body.stage>=stages.length||!Number.isInteger(body.version)) return send(400,{error:'Некорректный этап'});
     const result=db.prepare(`UPDATE mission SET
-     defenseAuthorized=CASE WHEN stage=$stage THEN defenseAuthorized ELSE 0 END,
-     takeoverEndsAt=CASE WHEN stage=$stage THEN takeoverEndsAt ELSE NULL END,
-     recoveryRequested=CASE WHEN stage=$stage THEN recoveryRequested ELSE 0 END,
-     recoveryHints=CASE WHEN stage=$stage THEN recoveryHints ELSE '[]' END,
-     ultronBattle=CASE WHEN stage=$stage THEN ultronBattle ELSE 'inactive' END,
+     badges=CASE WHEN $stage=0 THEN 0 ELSE badges END,
+     edithUnlocked=CASE WHEN $stage>=2 THEN 1 ELSE 0 END,
+     elementDiscovered=CASE WHEN $stage>=3 THEN 1 ELSE 0 END,
+     timelineFound=CASE WHEN $stage>=6 THEN 1 ELSE 0 END,
+     victory=CASE WHEN $stage=8 THEN 1 ELSE 0 END,
+     codeforces=0, defenseAuthorized=0, takeoverEndsAt=NULL,
+     recoveryRequested=0, recoveryHints='[]', ultronBattle='inactive',
+     missionRun=version+1,
      stage=$stage, version=version+1 WHERE id=1 AND version=$version`).run({stage:body.stage, version:body.version});
     return send(result.changes?200:409,result.changes?state():{error:'Этап уже изменился. Обновите данные и подтвердите снова.'});
    }
@@ -172,4 +175,4 @@ export function laboratory({database='data/mission.sqlite',password,edithCode,se
   } catch {send(500,{error:'Сервис временно недоступен'});}
  });server.on('close',()=>db.close());return server;
 }
-if(process.argv[1]===resolve('server.mjs')) {mkdirSync('data',{recursive:true}); laboratory({password:process.env.ADMIN_PASSWORD,edithCode:process.env.EDITH_CODE,secure:process.env.NODE_ENV==='production',trustedProxy:process.env.TRUSTED_PROXY_IP}).listen(Number(process.env.PORT||3000),'0.0.0.0');}
+if(process.argv[1]===resolve('server.mjs')) {mkdirSync('data',{recursive:true}); laboratory({password:process.env.ADMIN_PASSWORD,edithCode:process.env.EDITH_CODE,secure:process.env.NODE_ENV==='production',trustedProxy:process.env.TRUSTED_PROXY_IP}).listen(Number(process.env.PORT||3000),'0.0.0.0');}
