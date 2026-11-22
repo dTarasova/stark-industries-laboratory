@@ -14,7 +14,7 @@ $impeccable critique - suggest how to make it clear for the user where to start.
 
 - [] Успешная временная линия
 Выстроена планетарная защита
-Победа над Альтроном - saved 
+Победа над Альтроном - saved text that does not change during the change of the stage 
 
 - [] restart receives 404 error 
 

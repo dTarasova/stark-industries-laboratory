@@ -23,7 +23,7 @@ const neighbors = [[1, 3], [0, 2, 4], [1, 5], [0, 4], [1, 3, 5], [2, 4]];
 
 function assemblyIssue(state: State) {
   if (!state.modules.every((module, index) => module === target[index])) {
-    return 'Шина ещё не собрана. Сверьте расположение кассет с журналом.';
+    return 'Цепь ещё не собрана. Сверьте расположение модулей с условиями в журнале обслуживания.';
   }
   if (!state.left) {
     return 'Контур собран, но изолятор пропускает сигнал не в ту сторону. Впечатляюще, но бесполезно.';
@@ -44,27 +44,29 @@ export function apply(state: State, action: unknown): State | string {
       }
       const issue = assemblyIssue(state);
       if (issue) return issue;
-      return state.open ? 'Сначала закройте сервисную кассету.' : {...state, power: 'MAIN'};
+      return state.open ? 'Основное питание недоступно при открытой крышке. Закройте крышку панели.' : {...state, power: 'MAIN'};
     }
     case 'hatch': {
-      if (state.power !== 'BACKUP') return 'Пока вы не переведёте меня на резервное питание, я предпочёл бы сохранить работоспособность.';
+      if (state.power !== 'BACKUP') return 'Крышка заблокирована при основном питании. Для обслуживания требуется резервное питание.';
       const issue = state.open ? assemblyIssue(state) : undefined;
       return issue ?? {...state, open: !state.open};
     }
     case 'rotate':
       return state.open && state.power === 'BACKUP' && state.modules[1] === 'D'
         ? {...state, left: !state.left}
-        : 'Дамми может повернуть изолятор только в открытой кассете, в ячейке 2.';
+        : 'Поворот доступен при резервном питании и открытой крышке, когда изолятор находится в ячейке 2.';
     case 'key':
       return state.power === 'MAIN' && !state.open && !assemblyIssue(state)
         ? {...state, complete: true}
-        : 'Протокол Clean Slate недоступен: аппаратная конфигурация не прошла проверку.';
+        : assemblyIssue(state) ?? (state.open
+          ? 'Запуск заблокирован: крышка панели открыта.'
+          : 'Запуск заблокирован: требуется основное питание.');
   }
   if (typeof action !== 'number' || !neighbors[action]) return 'Неизвестная команда.';
-  if (!state.open || state.power !== 'BACKUP') return 'Перейдите на BACKUP и откройте сервисную кассету.';
+  if (!state.open || state.power !== 'BACKUP') return 'Перемещение модулей доступно при резервном питании и открытой крышке панели.';
   const empty = state.modules.indexOf(null);
   if (!neighbors[action].includes(empty)) {
-    return 'Дамми не может перескочить через кассету, сэр. Его возможности всё ещё ограничены физикой.';
+    return 'Модуль должен соседствовать с пустой ячейкой по стороне. Дамми пока не умеет перепрыгивать через оборудование, сэр.';
   }
   if (state.modules[action] === 'U' && empty === 4) return quarantineWarning;
   const modules = [...state.modules];

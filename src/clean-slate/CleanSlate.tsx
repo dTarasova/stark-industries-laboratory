@@ -13,7 +13,7 @@ const names = {
   D: 'Односторонний изолятор',
 };
 const hints = [
-  'Чтобы освободить среднюю часть панели, придётся временно убрать с места даже силовой стабилизатор. Именно поэтому нужен BACKUP.',
+  'Чтобы освободить среднюю часть панели, придётся временно убрать с места даже силовой стабилизатор. Именно поэтому нужно резервное питание.',
   'Цель — верхняя цепь P–D–L. Снизу карантин U и журнал A, последняя ячейка свободна. Не пытайтесь выстроить всю верхнюю цепь одним проходом.',
   'Со стартовой раскладки сдвиньте D из ячейки 5 в 6, затем L из 4 в 5. Теперь можно сдвинуть P из 1 в 4.',
 ];
@@ -39,6 +39,7 @@ export function CleanSlate({mission}: {mission: number}) {
   const [storageFailed, setStorageFailed] = useState(false);
   const [motion, setMotion] = useState<{action: Action; destination: number; id: number}>();
   const [lines, setLines] = useState(() => state.complete ? finale.length : 0);
+  const canMove = state.open && state.power === 'BACKUP' && !state.complete;
 
   useEffect(() => {
     if (!state.complete || lines === finale.length) return;
@@ -68,7 +69,12 @@ export function CleanSlate({mission}: {mission: number}) {
       setMessage(next);
       return;
     }
-    setMessage('');
+    setMessage(typeof action === 'number'
+      ? `Модуль ${state.modules[action]} перемещён в ячейку ${state.modules.indexOf(null) + 1}.`
+      : action === 'fuse' ? 'Резервный предохранитель установлен.'
+      : action === 'power' ? `Питание переключено на ${next.power === 'MAIN' ? 'основную' : 'резервную'} линию.`
+      : action === 'hatch' ? `Крышка панели ${next.open ? 'открыта' : 'закрыта'}.`
+      : action === 'rotate' ? 'Направление стрелки изолятора изменено.' : '');
     if (action === 'key') setLines(0);
     setMotion(action === 'reset' ? undefined : {
       action, destination: state.modules.indexOf(null), id: history.length + 1,
@@ -87,22 +93,43 @@ export function CleanSlate({mission}: {mission: number}) {
     <main className="clean-slate">
       <header><span>SURKOV INDUSTRIES</span><a href="/">В лабораторию</a></header>
       <h1>Clean Slate / DUM-E</h1>
+      <section className="slate-brief" aria-labelledby="slate-goal">
+        <h2 id="slate-goal">Восстановите локальную цепь запуска Clean Slate</h2>
+        <p>Дамми перемещает модули по вашим командам. Начните с журнала обслуживания: в нём записаны условия исправной сборки.</p>
+        <details className="slate-journal">
+          <summary>Прочитать условия сборки</summary>
+          <h3>Акт 47-B / Аварийная реконфигурация шины</h3>
+          <ol>
+            <li>В верхней цепи разместите силовой стабилизатор, изолятор и локальный инициатор по порядку.</li>
+            <li>Заражённый интерфейс поместите в левую нижнюю ячейку. Средняя нижняя ячейка связана с диагностикой ядра JARVIS и запрещена для заражённого модуля.</li>
+            <li>Регистратор установите справа от карантина. Правую нижнюю ячейку оставьте пустой.</li>
+            <li>Сигнал идёт по верхней цепи справа налево. Направьте стрелку изолятора по ходу сигнала.</li>
+          </ol>
+        </details>
+      </section>
       <div className="slate-layout" data-complete={state.complete} data-power={state.power}>
         <div key={motion?.id ?? 'idle'} className={motion ? 'reactor-visual slate-reactor slate-reactor-pulse' : 'reactor-visual slate-reactor'} aria-hidden="true" />
       {!panel && <button onClick={() => setPanel(true)}>Открыть панель Дамми</button>}
       {panel && (
         <section className="slate-panel" aria-labelledby="slate-panel-title">
-          <h2 id="slate-panel-title">Коммутационная шина</h2>
+          <h2 id="slate-panel-title">Панель восстановления</h2>
+          <h3>Обслуживание</h3>
+          <dl className="slate-equipment" aria-label="Состояние оборудования">
+            <div><dt>Предохранитель</dt><dd>{state.fuse ? 'Установлен' : 'Отсутствует'}</dd></div>
+            <div><dt>Питание</dt><dd>{state.power === 'MAIN' ? 'Основное · MAIN' : 'Резервное · BACKUP'}</dd></div>
+            <div><dt>Крышка панели</dt><dd>{state.open ? 'Открыта' : 'Закрыта'}</dd></div>
+          </dl>
           <div className="slate-controls">
-            <button disabled={state.fuse} onClick={() => command('fuse')}>{state.fuse ? 'Предохранитель установлен' : 'Установить предохранитель'}</button>
-            <button disabled={state.complete} onClick={() => command('power')}>{state.power} → {state.power === 'MAIN' ? 'BACKUP' : 'MAIN'}</button>
-            <button disabled={state.complete} onClick={() => command('hatch')}>{state.open ? 'Закрыть кассету' : 'Открыть кассету'}</button>
-            <button disabled={state.complete} onClick={() => command('rotate')}>Повернуть изолятор</button>
-            
+            {!state.fuse && <button disabled={state.complete} onClick={() => command('fuse')}>Установить предохранитель</button>}
+            <button disabled={state.complete} onClick={() => command('power')}>Переключить на {state.power === 'MAIN' ? 'резервное' : 'основное'} питание</button>
+            <button disabled={state.complete} onClick={() => command('hatch')}>{state.open ? 'Закрыть' : 'Открыть'} крышку панели</button>
           </div>
-          <p className="slate-power">Питание <strong>{state.power}</strong> · Кассета {state.open ? 'открыта' : 'закрыта'}</p>
-          <p className="slate-instruction">Выберите кассету — Дамми переместит её в соседний свободный отсек.</p><div className="slate-workbench">
-            <div className="slate-grid" role="group" aria-label="Шесть отсеков коммутационной шины">
+          <p className="slate-service-note">Резервная линия требует предохранителя. Работать с модулями можно только при резервном питании и открытой крышке.</p>
+          <h3 className="slate-assembly-title">Сборка цепи</h3>
+          <p className="slate-instruction" id="slate-move-rule">Нажмите на модуль рядом с пустой ячейкой — Дамми сдвинет его по стороне. Можно отменить действие.</p>
+          <p className="slate-access" role="status">{state.complete ? 'Сборка завершена.' : canMove ? 'Панель открыта для перемещения модулей.' : 'Доступ к модулям закрыт: нужны резервное питание и открытая крышка.'}</p>
+          <div className="slate-workbench">
+            <div className="slate-grid" role="group" aria-label="Шесть ячеек коммутационной шины" aria-describedby="slate-move-rule">
               {state.modules.map((module, index) => {
                 const source = motion?.action;
                 const sliding = typeof source === 'number' && motion?.destination === index;
@@ -113,7 +140,7 @@ export function CleanSlate({mission}: {mission: number}) {
                 return (
                   <button key={index} className="slate-slot" data-empty={!module}
                     data-danger={index === 4 && message === quarantineWarning}
-                    disabled={!module || state.complete} onClick={() => command(index)}>
+                    disabled={!module || !canMove} onClick={() => command(index)}>
                     <small>{index + 1}{index === 3 && ' · Карантин'}{index === 4 && ' · Диагностика'}</small>
                     <span key={sliding ? motion.id : module} className={sliding ? 'slate-slide' : undefined} style={style}>
                       {module ? <><strong>{module}{module === 'D' && (state.left ? ' ←' : ' →')}</strong>{names[module]}</> : 'Свободно'}
@@ -133,13 +160,16 @@ export function CleanSlate({mission}: {mission: number}) {
               )}
             </div>
           </div>
+          <div className="slate-controls slate-isolator">
+            <button disabled={!canMove} onClick={() => command('rotate')}>Развернуть стрелку изолятора</button>
+          </div>
           <p className="slate-status" role="status">{message && <><strong>Локальная диагностика</strong> · {message}</>}</p>
-          <div className="slate-activation"><div><h3>Запуск Clean Slate</h3><p>После сборки закройте кассету и верните основное питание.</p></div><button disabled={state.complete} onClick={() => command('key')}>Повернуть ключ Clean Slate</button></div>
+          <div className="slate-activation"><div><h3>Запуск протокола</h3><p>Для запуска нужны исправная сборка, закрытая крышка и основное питание.</p></div><button disabled={state.complete} onClick={() => command('key')}>Повернуть ключ Clean Slate</button></div>
           {storageFailed && <p role="alert">Браузер не сохранил прогресс. Оставьте страницу открытой, чтобы продолжить.</p>}
           <div className="slate-controls">
             <button disabled={!history.length} onClick={undo}>Отменить действие</button>
             <button disabled={!history.length} onClick={() => {setHintCount(0); command('reset');}}>Сбросить панель</button>
-            <button disabled={hintCount === hints.length} onClick={() => setHintCount(hintCount + 1)}>Открыть подсказку {hintCount < hints.length ? hintCount + 1 : ''}</button>
+            <button disabled={hintCount === hints.length} onClick={() => setHintCount(hintCount + 1)}>{hintCount === 2 ? 'Показать первые ходы' : hintCount === hints.length ? 'Все подсказки открыты' : `Открыть подсказку ${hintCount + 1}`}</button>
           </div>
           {hintCount > 0 && <ol aria-label="Подсказки">{hints.slice(0, hintCount).map(hint => <li key={hint}>{hint}</li>)}</ol>}
           {state.complete && (
@@ -158,18 +188,6 @@ export function CleanSlate({mission}: {mission: number}) {
       <aside className="slate-guide" aria-label="Инструкция и локальный журнал">
       <p><strong>DUM-E · Аварийное обслуживание</strong></p>
       <p>Сэр, Альтрон оставил резервный интерфейс в системе управления бронёй. Дистанционное переключение исключено. Дамми поможет восстановить локальную шину. Сохраните питание ядра JARVIS, изолируйте заражённый модуль и установите односторонний барьер. Пожалуйста, не заставляйте Дамми импровизировать.</p>
-      <details className="slate-journal">
-        <summary>Открыть журнал обслуживания</summary>
-        <h2>Акт 47-B / Аварийная реконфигурация шины</h2>
-        <ol>
-          <li>В верхней цепи разместите силовой стабилизатор, изолятор и локальный инициатор по порядку.</li>
-          <li>Заражённый интерфейс поместите в левый нижний отсек. Средний нижний отсек связан с диагностикой ядра JARVIS и запрещён для заражённой кассеты.</li>
-          <li>Регистратор установите справа от карантина. Правый нижний отсек оставьте пустым.</li>
-          <li>Сигнал идёт по верхней цепи справа налево. Направьте стрелку изолятора по ходу сигнала.</li>
-          <li>Перейдите на резервное питание перед вскрытием кассеты. Верните основное питание после сборки и закрытия.</li>
-          <li>Сдвигайте по одной кассете в соседний по стороне пустой отсек.</li>
-        </ol>
-      </details>
       </aside>
       </div>
     </main>
