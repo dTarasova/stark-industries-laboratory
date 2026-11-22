@@ -7,13 +7,14 @@ export const badgeNames = ['GENIUS / Гений', 'BILLIONAIRE / Биллион�
 
 const greeting = 'Добро пожаловать, мистер Сурков. Сканирование дугового реактора завершено. Лаборатория открыта.';
 
-export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured, edithUnlocked, cleanSlateComplete}: {
+export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured, edithUnlocked, planetaryDefense, cleanSlateComplete}: {
   stage?: number;
   elementDiscovered: boolean;
   edithUnlocked: boolean;
   badges?: number;
   children: ReactNode;
   captured?: boolean;
+  planetaryDefense?: boolean;
   cleanSlateComplete?: boolean;
 }) {
   const [scanState, setScan] = useState<'ready' | 'scanning' | 'done'>(stage === 0 ? 'ready' : 'done');
@@ -96,7 +97,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
               <li><ProjectIllustration project="research" /><strong>Исследовательская программа</strong><p>Текст диссертации подготовлен. Пока другие ждали вдохновения, вы превратили идеи в результат. Гений умеет доводить работу до последней точки.</p></li>
               <li><ProjectIllustration project="graduate" /><strong>Аспирантура</strong><p>Аспирантура окончена. Одного таланта на этой дистанции было бы мало — поэтому вы добавили характер. Пора снова поднимать потолок возможностей.</p></li>
               <li><ProjectIllustration project="algorithms" /><strong>Алгоритмическая школа</strong><p>4 из 13 стажёров завершили первый раунд и повысили рейтинг на Codeforces. Решать сложные задачи — привычный масштаб. Учить этому других — почерк основателя.</p></li>
-              {cleanSlateComplete && <li><ProjectIllustration project="planetary-defense" /><strong>Планетарная защита</strong><p>Планетарная защита выстроена. Масштаб «весь мир» наконец соответствует вашим амбициям. Можно выдохнуть — планета сегодня остаётся на месте.</p></li>}
+              {planetaryDefense && <li><ProjectIllustration project="planetary-defense" /><strong>Планетарная защита</strong><p>Планетарная защита выстроена. Масштаб «весь мир» наконец соответствует вашим амбициям. Можно выдохнуть — планета сегодня остаётся на месте.</p></li>}
               {cleanSlateComplete && <li><ProjectIllustration project="defeat-ultron" /><strong>Победа над Альтроном</strong><p>Дамми восстановил аварийную шину, заражённые костюмы выведены из строя. Альтрон просчитал многое, но недооценил вашу команду. Лаборатория снова принадлежит своему создателю.</p></li>}
               {cleanSlateComplete && <li><ProjectIllustration project="iron-man" /><strong>Вы — Железный человек</strong><p>Миссия завершена. Броню можно заменить, реактор — усовершенствовать, но человека внутри ничем не заменить. Сегодня всем ясно, кто здесь Железный человек.</p></li>}
             </ul>

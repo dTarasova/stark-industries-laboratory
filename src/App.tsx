@@ -7,6 +7,7 @@ import {UltronTerminal} from './UltronTerminal';
 import {Dummy} from './Dummy';
 import {Development} from './Development';
 import {CleanSlate} from './clean-slate/CleanSlate';
+import {missionAchievements} from './missionAchievements';
 
 import {UltronBattle} from './UltronBattle';
 export type Mission={edithUnlocked:boolean;stage:number;version:number;stages:string[];elementDiscovered?:number;timelineFound:number;victory:number;codeforces:number;badges:number;defenseAuthorized:number;takeoverEndsAt:number|null;takeoverDuration:number;serverTime:number;missionRun:number;recoveryRequested:number;recoveryHints:string[];ultronBattle:'inactive'|'active'|'won'};
@@ -85,6 +86,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
    finally {await refresh();}
  }
  const recovery = mission?.stage === 5;
+ const achievements = mission && missionAchievements(mission);
  const missionSummary = (
    <section>
      <p role="status">{online ? 'Связь с лабораторией установлена' : 'Нет связи с лабораторией'}</p>
@@ -96,7 +98,7 @@ export function App({experiment, allowOfflineExperiment = false}: {
        ? <button disabled={busy || !online} onClick={() => void action(() => runCommand('activate-defense', mission.version))}>Активировать планетарную защиту</button>
        : <p>Ожидайте разрешения ведущей на запуск.</p>)}
      {!control && mission && mission.stage === 7 && (!mission.codeforces || battleWon) && !isCleanSlate && <p><a href="/clean-slate">Открыть Clean Slate / DUM-E</a></p>}
-     {!control && mission && <ul>{Boolean(mission.elementDiscovered) && <li>Найденный химический элемент</li>}{Boolean(mission.timelineFound) && <li>Успешная временная линия</li>}{Boolean(mission.victory) && <><li>Выстроена планетарная защита</li><li>Победа над Альтроном</li></>}</ul>}{!control && error && <p role="alert">{error}</p>}
+     {!control && achievements && <ul>{achievements.elementDiscovered && <li>Найденный химический элемент</li>}{achievements.planetaryDefense && <li>Выстроена планетарная защита</li>}{achievements.timelineFound && <li>Успешная временная линия</li>}{achievements.victory && <li>Победа над Альтроном</li>}</ul>}{!control && error && <p role="alert">{error}</p>}
    </section>
  );
  if (!control) {
@@ -115,8 +117,8 @@ export function App({experiment, allowOfflineExperiment = false}: {
        {!mission && !(showExperiment && experiment) && <main>{missionSummary}<Dummy /></main>}
        {showOverview && !recovery && (
          <div className="takeover-backdrop" data-captured={captured && elapsed >= 36000} inert={captured}>
-           <LaboratoryOverview key={mission.missionRun} stage={mission.stage} elementDiscovered={Boolean(mission.elementDiscovered)} badges={mission.badges}
-             cleanSlateComplete={Boolean(mission.victory)} captured={captured} edithUnlocked={mission.edithUnlocked}>{missionSummary}</LaboratoryOverview>
+           <LaboratoryOverview key={mission.missionRun} stage={mission.stage} elementDiscovered={Boolean(achievements?.elementDiscovered)} badges={mission.badges}
+             planetaryDefense={achievements?.planetaryDefense} cleanSlateComplete={achievements?.victory} captured={captured} edithUnlocked={mission.edithUnlocked}>{missionSummary}</LaboratoryOverview>
          </div>
        )}
        {mission && isCleanSlate && !captured && !recovery && (

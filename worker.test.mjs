@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from './worker.mjs';
+import {missionAchievements} from './src/missionAchievements.ts';
 
 // SQL выполняется в настоящем SQLite, интерфейс — асинхронный контракт D1.
 // Эти проверки не подменяют проверку wrangler dev в среде Cloudflare.
@@ -110,6 +111,23 @@ test('Workers/D1: обе ветки от EDITH до победы, подсказ
   assert.notEqual(m.missionRun,oldRun);
   assert.equal((await post('element-complete',{version:m.version,missionRun:oldRun})).status,409);
  }
+});
+
+test('Достижения следуют этапу при откате с победы; Restart очищает все результаты',async t=>{
+ const {post,get,login}=fixture(t);
+ const cookie=await login();
+ let mission=await get();
+ for(const stage of [8,7,6,5,4,3,2,1,0,8]) {
+  assert.equal((await post('mission',{stage,version:mission.version},{cookie})).status,200);
+  mission=await get();
+  assert.deepEqual(missionAchievements(mission),{
+   elementDiscovered:stage>=3,planetaryDefense:stage>=4,timelineFound:stage>=6,victory:stage===8,
+  });
+ }
+ assert.equal((await post('restart',{version:mission.version},{cookie})).status,200);
+ assert.deepEqual(missionAchievements(await get()),{
+  elementDiscovered:false,planetaryDefense:false,timelineFound:false,victory:false,
+ });
 });
 
 test('Workers/D1: вход сохраняется между экземплярами, истекает, отзывается и не хранит токен открыто',async t=>{
