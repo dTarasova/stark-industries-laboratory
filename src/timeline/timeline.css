@@ -13,3 +13,20 @@
 .tl-lineage{margin:8px 0;padding:4px 0}.tl-lineage>div{padding:4px 0}.tl-lineage ol{min-width:0;margin:4px 0}.tl-lineage li{padding:6px 4px 0 0}.tl-chapters h1{margin:20px 0}.tl-chapters header{padding-bottom:12px}.tl-selected-dialogue{border:0;padding:0;background:none}
 .tl-chapters>article.tl-review,.tl-chapters>article.tl-summary{max-width:1000px;margin:28px auto;text-align:center}.tl-review-item{display:grid;grid-template-columns:minmax(160px,1fr) minmax(140px,1fr) auto;align-items:center;gap:20px;padding:18px 8px;border-bottom:1px solid #527078;text-align:left}.tl-review-item strong{color:#a8f6ff}.tl-summary>p:has(.tl-metric){display:inline-block;margin:16px 28px}.tl-summary>p{margin-inline:auto;max-width:65ch}.tl-pilot-options{justify-content:center}.tl-pilot-options:has(> :nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,320px))}.tl-pilot-options:has(> :only-child){grid-template-columns:minmax(0,420px)}.tl-story:has(blockquote:nth-child(-n+2):last-child){max-width:760px}.tl-review-item button{margin:0}@media(max-width:600px){.tl-review-item{grid-template-columns:1fr;text-align:center;gap:8px}.tl-pilot-options:has(> :nth-child(2):last-child){grid-template-columns:1fr}}
 .tl-effect-reveal{border:0;background:#142b36;border-radius:12px;text-align:center;padding:20px}.tl-effect-reveal>p:has(.tl-metric){display:inline-block;margin:10px 20px}.tl-reveal-scene>button{display:block;margin:20px auto}.tl-review-item{cursor:default}
+
+/* One central conclusion, followed by the report and unlocked epilogues. */
+.tl-chapters .tl-ending{margin:32px auto;border-inline:0;background:transparent;text-align:center;width:100%;max-width:80ch;padding-inline:clamp(0px,2vw,24px)}
+.tl-ending .tl-prose{margin-inline:auto;text-align:left}
+.tl-ending .tl-strange-action{display:block;margin:24px auto}
+.tl-result-report{font-variant-numeric:tabular-nums;line-height:1.8;color:#a8f6ff}
+.tl-epilogues{margin:40px auto;max-width:70ch;text-align:left}
+.tl-epilogues>h3{margin-bottom:8px}
+.tl-epilogues>p{color:#c0d2d8}
+.tl-epilogues article{padding:18px 0;border-bottom:1px solid #527078}
+.tl-epilogues h4{margin:0 0 8px;color:#a8f6ff;font-size:18px}
+.tl-epilogues article p{margin:0;line-height:1.7}
+.tl-motion .tl-ending{animation:none}
+.tl-motion .tl-strange-action{animation:tl-strange-ready 1.1s cubic-bezier(.16,1,.3,1)}
+.tl-motion .tl-ending-content{animation:tl-verdict-reveal .65s cubic-bezier(.16,1,.3,1)}
+@keyframes tl-strange-ready{from{border-color:#d5bc83;background:#3d3324}to{border-color:#527078;background:#142b36}}
+@keyframes tl-verdict-reveal{from{clip-path:inset(0 0 18% 0);opacity:.45}to{clip-path:inset(0);opacity:1}}

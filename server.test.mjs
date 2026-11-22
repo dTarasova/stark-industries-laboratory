@@ -4,6 +4,34 @@ import {laboratory} from './server.mjs';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+test('Пульт восстанавливает вход по cookie и получает свежую миссию', async () => {
+ const server=laboratory({database:':memory:',password:'test-password-only-123'});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base=`http://127.0.0.1:${server.address().port}/api/`;
+ const post=(path,body,cookie='')=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json',cookie},body:JSON.stringify(body)});
+ const get=cookie=>fetch(base+'control-state',{headers:{cookie}});
+ try {
+  const anonymous=await get('');
+  assert.equal(anonymous.status,200);
+  assert.equal((await anonymous.json()).authenticated,false);
+  const login=await post('login',{password:'test-password-only-123'});
+  const cookie=login.headers.get('set-cookie').split(';')[0];
+  const restored=await get(cookie);
+  assert.equal(restored.headers.get('Cache-Control'),'no-store');
+  const initial=await restored.json();
+  assert.equal(initial.authenticated,true);
+  assert.equal((await post('mission',{stage:1,version:initial.mission.version},cookie)).status,200);
+  assert.equal((await post('edith',{code:'not-configured'})).status,503);
+  const updated=await (await get(cookie)).json();
+  assert.equal(updated.authenticated,true);
+  assert.equal(updated.mission.stage,1);
+  assert.ok(updated.mission.version>initial.mission.version);
+  await post('logout',{},cookie);
+  assert.equal((await (await get(cookie)).json()).authenticated,false);
+  assert.equal((await (await get('session=invalid')).json()).authenticated,false);
+ } finally {await new Promise(resolve=>server.close(resolve));}
+});
+
 test('Общая миссия, защита и сохранение после перезапуска',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'surkov-'));const options={database:join(dir,'mission.sqlite'),password:'test-password-only-123'};
  let server=laboratory(options);await new Promise(r=>server.listen(0,'127.0.0.1',r));let url=`http://127.0.0.1:${server.address().port}`;
@@ -30,7 +58,7 @@ test('Общая миссия, защита и сохранение после �
  }finally{if(server.listening) await new Promise(r=>server.close(r));rmSync(dir,{recursive:true});}
 });
 
-test('Захват длится минуту и остаётся до ручного открытия резервного канала', async ({mock}) => {
+test('Ведущая может показать резервный канал после монолога, не дожидаясь двух минут', async ({mock}) => {
  mock.timers.enable({apis: ['Date']});
  const server = laboratory({database: ':memory:', password: 'test-password-only-123'});
  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -68,6 +96,46 @@ test('Захват длится минуту и остаётся до ручно
   assert.equal((await post('open-recovery', {version: 3}, cookie)).status, 409);
  } finally {
   await new Promise(resolve => server.close(resolve));
+ }
+});
+
+test('Резервный канал доступен через две минуты после полного текста и сохраняется после перезапуска', async ({mock}) => {
+ mock.timers.enable({apis: ['Date']});
+ const dir = mkdtempSync(join(tmpdir(), 'surkov-recovery-'));
+ const options = {database: join(dir, 'mission.sqlite'), password: 'test-password-only-123'};
+ let server;
+ let base;
+ const start = async () => {
+  server = laboratory(options);
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  base = `http://127.0.0.1:${server.address().port}/api/`;
+ };
+ const get = async () => (await fetch(base + 'mission')).json();
+ const post = (path, body, cookie = '') => fetch(base + path, {
+  method: 'POST', headers: {'Content-Type': 'application/json', cookie}, body: JSON.stringify(body),
+ });
+ try {
+  await start();
+  const cookie = (await post('login', {password: options.password})).headers.get('set-cookie').split(';')[0];
+  await post('mission', {stage: 3, version: 0}, cookie);
+  await post('authorize-defense', {version: 1}, cookie);
+  await post('activate-defense', {version: 2});
+  mock.timers.tick(158_000 - 1);
+  assert.equal((await get()).stage, 4);
+  await new Promise(resolve => server.close(resolve));
+  await start();
+  assert.equal((await get()).stage, 4);
+  mock.timers.tick(1);
+  const available = await get();
+  assert.equal(available.stage, 5);
+  assert.equal(available.version, 4);
+  assert.equal((await get()).version, 4);
+  await new Promise(resolve => server.close(resolve));
+  await start();
+  assert.equal((await get()).stage, 5);
+ } finally {
+  if (server?.listening) await new Promise(resolve => server.close(resolve));
+  rmSync(dir, {recursive: true});
  }
 });
 

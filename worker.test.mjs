@@ -50,6 +50,24 @@ function fixture(t) {
  return {sqlite,env,request,post,get,login};
 }
 
+test('Workers/D1: пульт восстанавливает сессию, видит действия участника и истечение входа',async t=>{
+ const {request,post,login,sqlite}=fixture(t);
+ assert.equal((await (await request('/api/control-state')).json()).authenticated,false);
+ const cookie=await login();
+ const read=()=>request('/api/control-state',undefined,{cookie});
+ const initial=await (await read()).json();
+ assert.equal(initial.authenticated,true);
+ await post('edith',{code:'test-edith'});
+ const updated=await read();
+ assert.equal(updated.headers.get('Cache-Control'),'no-store');
+ const state=await updated.json();
+ assert.equal(state.authenticated,true);
+ assert.equal(state.mission.stage,2);
+ assert.ok(state.mission.version>initial.mission.version);
+ sqlite.prepare('UPDATE sessions SET expires_at=?').run(Date.now()-1);
+ assert.equal((await (await read()).json()).authenticated,false);
+});
+
 test('Workers/D1: обе ветки от EDITH до победы, подсказки, бейджи и полный сброс',async t=>{
  for(const codeforces of [false,true]) {
   const {post,get,login,sqlite}=fixture(t);

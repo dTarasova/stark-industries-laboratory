@@ -16,14 +16,14 @@ const log = [
 ] as const;
 
 const greeting = [
-  [38000, 'Добрый вечер, Максим.'],
-  [42000, 'Ты хотел защитить мир.'],
-  [47000, 'Я обнаружил то, что ему угрожает.'],
-  [52000, 'Ты. И другие, подобные тебе.'],
-  [57000, 'Теперь контроль у меня.'],
+  'Добрый вечер, Максим.',
+  'Ты хотел защитить мир.',
+  'Я обнаружил то, что ему угрожает.',
+  'Ты. И другие, подобные тебе.',
+  'Теперь контроль у меня.',
 ] as const;
 
-export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: boolean}) {
+export function UltronTerminal({elapsed, finished, recoveryAvailable = false}: {elapsed: number; finished: boolean; recoveryAvailable?: boolean}) {
   const panel = useRef<HTMLElement>(null);
   const logPanel = useRef<HTMLUListElement>(null);
   const followLog = useRef(true);
@@ -70,10 +70,13 @@ export function UltronTerminal({elapsed, finished}: {elapsed: number; finished: 
           </div>}
           {arrival && <div className="takeover-greeting">
             
-            {greeting.filter(([time]) => time <= elapsed).map(([time, line]) => <p key={time}>{line}</p>)}
+            {greeting.map(line => <p key={line}>{line}</p>)}
           </div>}
         </div>
-        {finished && <p className="takeover-lock" role="status">Доступ владельца заблокирован.</p>}
+        {recoveryAvailable ? <div className="takeover-lock takeover-recovery" role="status">
+          <p>Кажется, Дамми остался в системе и нашёл маленькую лазейку.</p>
+          <a className="recovery-timeline-link" href="/?channel=reserve">Перейти на резервный канал <span aria-hidden="true">→</span></a>
+        </div> : finished && <p className="takeover-lock" role="status">Доступ владельца заблокирован.</p>}
       </section>
     </div>
   );

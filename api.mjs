@@ -1,16 +1,26 @@
 import {randomBytes, timingSafeEqual, createHash} from 'node:crypto';
 export const stages = ['Знакомство с лабораторией','EDITH — текущая разработка','Новый элемент','Защита Земли','Атака Альтрона','Временные линии','Восстановление JARVIS','Clean Slate','Победа'];
 const takeoverDuration = 60_000;
+// Полный монолог появляется на 38-й секунде; ещё две минуты на чтение.
+const recoveryAvailableAfter = 38_000 + 120_000;
 
 // Общий API для Node.js/SQLite и Cloudflare Workers/D1.
 export function createApi({db,auth,password,edithCode,secure=false}) {
  if(!password || password.length<16) throw Error('Задайте ADMIN_PASSWORD длиной от 16 символов');
  const state=async()=>await db.prepare('SELECT stage,version,badges FROM mission WHERE id=1').get();
  const publicMission = async () => {
+  await db.prepare(`UPDATE mission SET stage=5, version=version+1
+   WHERE id=1 AND stage=4 AND takeoverEndsAt IS NOT NULL AND takeoverEndsAt<=?`)
+   .run(Date.now() - (recoveryAvailableAfter - takeoverDuration));
   const {edithUnlocked, recoveryHints, ...mission} = await db.prepare('SELECT stage,version,badges,defenseAuthorized,takeoverEndsAt,edithUnlocked,missionRun,recoveryRequested,recoveryHints,ultronBattle,elementDiscovered,timelineFound,victory,codeforces FROM mission WHERE id=1').get();
   return {...mission, recoveryHints: JSON.parse(recoveryHints), edithUnlocked: Boolean(edithUnlocked), stages, takeoverDuration, serverTime: Date.now()};
  };
  const hash=s=>createHash('sha256').update(s).digest();
+ const sessionKeyFor=async request=>{
+  const token=request.headers.get('cookie')?.split(';').map(x=>x.trim()).find(x=>x.startsWith('session='))?.slice(8);
+  const key=token && /^[a-f0-9]{64}$/.test(token)?hash(token).toString('hex'):null;
+  return key && await auth.hasSession(key,Date.now(),hash(password).toString('hex')) ? key : null;
+ };
  const edithHash = edithCode?.trim() ? hash(edithCode.trim()) : undefined;
 
  return async function handleApi(request,clientIP='unknown') {
@@ -18,6 +28,9 @@ export function createApi({db,auth,password,edithCode,secure=false}) {
   try {
    const path=new URL(request.url).pathname;
     if(request.method==='GET' && path==='/api/mission') return send(200,await publicMission());
+    if(request.method==='GET' && path==='/api/control-state') return send(200,{
+     authenticated:Boolean(await sessionKeyFor(request)),mission:await publicMission(),
+    });
     if(request.method!=='POST') return send(405,{error:'Метод недоступен'});
     const origin=request.headers.get('origin');
     if(origin && new URL(origin).origin!==new URL(request.url).origin) return send(403,{error:'Запрос отклонён'});
@@ -89,9 +102,8 @@ export function createApi({db,auth,password,edithCode,secure=false}) {
       WHERE id=1 AND stage=3 AND defenseAuthorized=1 AND version=?`).run(Date.now() + takeoverDuration, body.version);
      return send(result.changes ? 200 : 409, result.changes ? await publicMission() : {error:'Запуск защиты сейчас недоступен.'});
     }
-    const token=request.headers.get('cookie')?.split(';').map(x=>x.trim()).find(x=>x.startsWith('session='))?.slice(8);
-    const sessionKey=token && /^[a-f0-9]{64}$/.test(token)?hash(token).toString('hex'):null;
-    if(!sessionKey || !await auth.hasSession(sessionKey,Date.now(),hash(password).toString('hex'))) return send(401,{error:'Войдите в пульт'});
+    const sessionKey=await sessionKeyFor(request);
+    if(!sessionKey) return send(401,{error:'Войдите в пульт'});
     if(path==='/api/logout'){
      await auth.deleteSession(sessionKey);
      return send(200,{ok:true},{'Set-Cookie':`session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secure?'; Secure':''}`});
