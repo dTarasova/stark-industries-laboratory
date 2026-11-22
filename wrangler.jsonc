@@ -13,7 +13,7 @@
     "binding": "DB",
     "database_name": "surkov-laboratory",
     // После создания D1 замените на database_id из Cloudflare.
-    "database_id": "00000000-0000-0000-0000-000000000000",
+    "database_id": "297b5a20-965a-47f1-9f99-1d80fc1073d4",
     "migrations_dir": "migrations"
   }]
 }
