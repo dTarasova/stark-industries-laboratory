@@ -6,8 +6,15 @@ export default {
  async fetch(request,env) {
   const path=new URL(request.url).pathname;
   if(path.startsWith('/api/')) {
-   if(!env.DB || typeof env.ADMIN_PASSWORD!=='string' || env.ADMIN_PASSWORD.length<16) {
-    return Response.json({error:'Сервер не настроен: подключите D1 и задайте ADMIN_PASSWORD (от 16 символов).'},
+   const configurationErrors=[];
+   if(!env.DB) configurationErrors.push('В работающем Worker отсутствует D1-привязка с именем DB.');
+   if(typeof env.ADMIN_PASSWORD!=='string' || !env.ADMIN_PASSWORD.length) {
+    configurationErrors.push('В работающем Worker не задан ADMIN_PASSWORD. Добавьте его в Settings → Variables and Secrets самого Worker.');
+   } else if(env.ADMIN_PASSWORD.length<16) {
+    configurationErrors.push('ADMIN_PASSWORD задан, но содержит меньше 16 символов.');
+   }
+   if(configurationErrors.length) {
+    return Response.json({error:configurationErrors.join(' ')},
      {status:503,headers:{'Cache-Control':'no-store'}});
    }
    try {

@@ -178,3 +178,33 @@ test('Workers: API обходит статику, страницы и прото
  }
  assert.equal(await (await request('/prototype_v2/')).text(),'/prototype_v2/');
 });
+
+test('Workers: диагностика отличает привязку D1, отсутствующий пароль и короткий пароль без раскрытия секретов',async t=>{
+ const {request,env}=fixture(t);
+ const binding=env.DB;
+ const password=env.ADMIN_PASSWORD;
+ async function diagnostic() {
+  const response=await request('/api/mission');
+  assert.equal(response.status,503);
+  assert.equal(response.headers.get('cache-control'),'no-store');
+  const body=await response.text();
+  assert.ok(!body.includes(password));
+  return JSON.parse(body).error;
+ }
+ delete env.DB;
+ assert.match(await diagnostic(),/D1-привязка с именем DB/);
+ assert.doesNotMatch(await diagnostic(),/ADMIN_PASSWORD/);
+ env.DB=binding;
+ delete env.ADMIN_PASSWORD;
+ assert.match(await diagnostic(),/не задан ADMIN_PASSWORD/);
+ assert.doesNotMatch(await diagnostic(),/D1-привязка/);
+ env.ADMIN_PASSWORD='short';
+ assert.match(await diagnostic(),/меньше 16 символов/);
+ delete env.DB;
+ const both=await diagnostic();
+ assert.match(both,/D1-привязка/);
+ assert.match(both,/меньше 16 символов/);
+ env.DB=binding;
+ env.ADMIN_PASSWORD=password;
+ assert.equal((await request('/api/mission')).status,200);
+});
