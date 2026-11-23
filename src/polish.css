@@ -247,6 +247,23 @@
 .victory-content h1 { letter-spacing: -.025em; }
 .victory-action { min-height: 52px; line-height: 1.5; }
 
+/* Найденная линия становится переходом к действию, а не страницей отчёта. */
+.timeline-success { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); column-gap:clamp(32px,6vw,96px); row-gap:24px; align-content:center; max-width:1600px; min-height:100svh; padding:clamp(24px,5vw,80px); }
+.timeline-success h1 { grid-column:2; grid-row:1; margin:0; font-size:clamp(32px,4vw,60px); line-height:1.1; letter-spacing:-.025em; }
+.timeline-success > img { grid-column:1; grid-row:1 / span 3; align-self:center; height:auto; max-height:65svh; object-fit:contain; }
+.timeline-success > p { grid-column:2; grid-row:2; margin:0; max-width:60ch; font-size:clamp(18px,1.7vw,23px); line-height:1.7; color:#c1dce5; }
+.timeline-success > button { grid-column:2; grid-row:3; justify-self:start; align-self:start; margin:8px 0 0; border:1px solid #a8f6ff; background:#a8f6ff; color:#071b24; font-weight:650; }
+.timeline-success > button:hover:not(:disabled) { background:#d6fbff; }
+.timeline-success > [role=alert] { grid-row:4; color:#ffb4a8; font-size:16px; }
+@media(max-width:760px) {
+  .timeline-success { grid-template-columns:minmax(0,1fr); align-content:start; gap:24px; }
+  .timeline-success h1 { grid-column:1; grid-row:1; }
+  .timeline-success > img { grid-column:1; grid-row:2; max-height:35svh; }
+  .timeline-success > p { grid-column:1; grid-row:3; }
+  .timeline-success > button { grid-column:1; grid-row:4; }
+  .timeline-success > [role=alert] { grid-row:5; }
+}
+
 @keyframes lab-unfold {
   from { clip-path: inset(0 0 85% 0); }
   to { clip-path: inset(0); }

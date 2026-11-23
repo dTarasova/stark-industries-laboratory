@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {OrbitalDisplay} from './OrbitalDisplay';
 
 const diagnostics = [
   'Системы лаборатории готовы к работе.',
@@ -56,6 +57,7 @@ export function LaboratorySystems({stage, elementDiscovered, edithUnlocked, onDi
   return (
     <section className="lab-panel" aria-labelledby="systems-title">
       <h2 id="systems-title">Схема систем</h2>
+      {stage === 3 && <OrbitalDisplay />}
       <ul className="system-nodes">
         {nodes.map(([title, status], index) => (
           <li key={title} data-checking={index === step}>

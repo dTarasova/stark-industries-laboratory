@@ -14,3 +14,32 @@
 .development-navigation header { max-width: 1600px; margin: auto; padding: 12px 24px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 .development-navigation header a { margin-left: auto; min-height: 44px; display: inline-flex; align-items: center; }
 .development-navigation + .development-puzzle { height: calc(100dvh - 69px); }
+
+/* Оптический шлюз EDITH: линзы, линии доступа и проверка по действию пользователя. */
+.edith-gate { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); align-items:center; gap:clamp(32px,6vw,80px); min-height:70svh; padding-block:40px; }
+.edith-gate .development-access { margin:0; padding:0; border:0; }
+.edith-gate .development-access h1 { margin:0 0 24px; font-size:clamp(32px,4vw,52px); line-height:1.1; letter-spacing:-.025em; }
+.edith-gate .edith-brief { margin:0 0 32px; color:#aec9d2; font-size:17px; line-height:1.7; }
+.edith-gate label { font-size:14px; color:#e3f2f5; }
+.edith-gate input { min-height:56px; font-size:22px; letter-spacing:.18em; }
+.edith-gate input[aria-invalid=true] { border-color:#ffb4a8; }
+.edith-optics { color:#a8f6ff; text-align:center; }
+.edith-optics svg { display:block; width:100%; stroke:currentColor; stroke-width:1.5; }
+.edith-frame { opacity:.55; }
+.edith-traces { opacity:.3; }
+.edith-lenses { stroke-width:2; fill:#103441; }
+.edith-focus { stroke:#ffcf91; }
+.edith-optics > span { font-family:'Exo 2',sans-serif; font-size:clamp(28px,4vw,46px); letter-spacing:.16em; }
+.edith-optics p { margin:12px 0 0; color:#aec9d2; font-size:14px; }
+.edith-sweep { opacity:0; }
+.edith-gate[data-state=checking] .edith-sweep { animation:edith-sweep 1.3s ease-in-out infinite; }
+.edith-gate[data-state=denied] .edith-optics { color:#ffb4a8; }
+@keyframes edith-sweep { 0%,100% { transform:translateY(-34px); opacity:.15; } 50% { transform:translateY(34px); opacity:1; } }
+@media(max-width:680px) {
+  .edith-gate { grid-template-columns:minmax(0,1fr); gap:32px; min-height:0; padding-block:28px 40px; }
+  .edith-optics { width:min(100%,300px); margin:auto; }
+  .edith-optics svg { height:150px; }
+  .edith-optics > span { font-size:28px; }
+  .edith-gate .edith-brief { font-size:16px; }
+}
+@media(prefers-reduced-motion:reduce) { .edith-gate[data-state=checking] .edith-sweep { animation:none; opacity:1; } }

@@ -5,7 +5,7 @@ import {ProjectIllustration} from './ProjectIllustration';
 
 export const badgeNames = ['GENIUS / Гений', 'BILLIONAIRE / Биллионер', 'PLAYBOY / Плейбой', 'PHILANTHROPIST / Филантроп'];
 
-const greeting = 'Добро пожаловать, мистер Сурков. Сканирование дугового реактора завершено. Лаборатория открыта.';
+const greeting = 'Добро пожаловать, мистер Сурков. Реактор в норме, лаборатория в вашем распоряжении. Постараемся сегодня ограничиться выдающимися открытиями.';
 
 export function LaboratoryOverview({stage, elementDiscovered, badges, children, captured, edithUnlocked, planetaryDefense, cleanSlateComplete}: {
   stage?: number;
@@ -79,7 +79,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
               <button type="button" onClick={startScan} disabled={scan === 'scanning'}>
                 {scan === 'scanning' ? 'Сканируем реактор…' : 'Сканировать реактор'}
               </button>
-              <p role="status">{scan === 'scanning' ? 'Проверяем питание и состояние ядра.' : 'JARVIS ожидает команды.'}</p>
+              <p role="status">{scan === 'scanning' ? 'JARVIS · Проверяю питание и состояние ядра.' : 'JARVIS · К вашим услугам, сэр.'}</p>
             </>
           )}
         </div>

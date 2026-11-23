@@ -13,12 +13,14 @@ const mainColor = 0x56bff6, reserveColor = 0xffb963;
 const canvas = $('viewport');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setClearColor(0x171c25);
+renderer.setClearColor(0x06121c);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x171c25, 40, 100);
+scene.fog = new THREE.Fog(0x06121c, 40, 100);
 const camera = new THREE.OrthographicCamera(-15,15,10,-10,.1,100);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping=true;
@@ -40,6 +42,9 @@ sunlight.shadow.mapSize.set(2048,2048);
 sunlight.shadow.camera.left=-22; sunlight.shadow.camera.right=22;
 sunlight.shadow.camera.top=20; sunlight.shadow.camera.bottom=-20;
 scene.add(sunlight);
+const rimLight = new THREE.DirectionalLight(0x76dfff, 2.2);
+rimLight.position.set(12, 8, -14);
+scene.add(rimLight);
 const mat=(color,opts={})=>new THREE.MeshStandardMaterial({color,roughness:.78,metalness:.14,...opts});
 const baseMat=mat(0x344456), platformMat=mat(0x495d6d), roofGrey=mat(0x819cae), blueRoof=mat(0x3c8ce0,{metalness:.35,roughness:.4}), goldRoof=mat(0xeaba56,{metalness:.25}), violetRoof=mat(0xa98de7,{metalness:.45}), whiteRoof=mat(0xd8ebfa,{metalness:.18}), factoryRoof=mat(0x6eb9c4);
 const selectableMeshes=[];
@@ -129,6 +134,14 @@ function labelSprite(text,{bg='#344659',fg='#f2f6fa',fontSize=52,w=180,h=85,worl
 // Base and environmental details
 meshBox(25.2,.55,15.9,baseMat,0,-.35,0);
 meshBox(25.3,.16,16,platformMat,0,-.63,0);
+// Световая кромка принадлежит столу и не участвует в проверке проекции.
+const tableEdgeMaterial = new THREE.MeshBasicMaterial({color:0x72d9e8});
+for (const x of [-12.65,12.65]) meshBox(.035,.045,16,tableEdgeMaterial,x,-.61,0);
+for (const z of [-8,8]) meshBox(25.3,.045,.035,tableEdgeMaterial,0,-.61,z);
+for (const x of [-12,12]) for (const z of [-7.3,7.3]) {
+  meshBox(.6,.035,.08,tableEdgeMaterial,x,-.04,z);
+  meshBox(.08,.035,.6,tableEdgeMaterial,x,-.04,z);
+}
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(24.75,15.25),mat(0x42566a));
 ground.rotation.x=-Math.PI/2;ground.position.y=-.058;ground.receiveShadow=true;scene.add(ground);
 for (let x=-11.75;x<=12;x+=1.15) {
@@ -249,7 +262,7 @@ function updateChips(){
     button.setAttribute('aria-pressed',String(selected.has(id)));
   }
 }
-function setStatus(message,style=''){$('status').className='status'+(style?' '+style:'');$('status').textContent=message;}
+function setStatus(message,style=''){$('status').className='status'+(style?' '+style:'');$('status').textContent=message;document.body.dataset.feedback=style;}
 function pressBuilding(id){
   if(stage===1){
     if(selected.has(id))selected.delete(id);else selected.add(id);
@@ -296,6 +309,7 @@ function isValidTopology(){
   return new Set(bridges.flatMap(e=>[e.a,e.b])).size===4;
 }
 function stepDisplay(){
+  document.body.dataset.stage=String(stage);
   updateDummy();
   for(let n=1;n<=3;n++){
     const el=$(`step${n}`);el.classList.toggle('active',stage===n);el.classList.toggle('done',stage>n);
@@ -315,7 +329,7 @@ function stepDisplay(){
 $('checkTopology').addEventListener('click',()=>{
   if(!isValidTopology()){setStatus('Топология не подтверждена: проверьте число зданий, оба кольца, количество переходов и отсутствие лишних соединений.','warn');return;}
   stage=2;showCalibration=true;mainPath=['B'];reservePath=['B'];chooseRoute('main');
-  setStatus('Топология допустима, но не доказана. Исследуйте три архивных документа и восстановите оба независимых маршрута.','good');
+  setStatus('Геометрия сходится, сэр. Но похожий комплекс ещё не означает подлинный. Изучите три архивных документа и восстановите два независимых маршрута.','good');
   stepDisplay();updateView();
 });
 $('returnTopology').addEventListener('click',()=>{

@@ -3,7 +3,7 @@ import {epilogues,selectEpilogues} from './epilogues';
 import {type Route,type Result} from './engine';
 
 export function ResultReport({result}:{result:Result}) {
- return <p className="tl-result-report">Спасено {result.saved.length}/4 · Разрушено {result.destroyed.length}/4 · Сеть: {result.network==='destroyed'?'уничтожена':result.network==='isolated'?'изолирована':'активна'}</p>;
+ return <p className="tl-result-report">Эвакуировано районов: {result.saved.length}/4 · Разрушена инфраструктура: {result.destroyed.length}/4 · Сеть Альтрона: {result.network==='destroyed'?'уничтожена':result.network==='isolated'?'изолирована':'активна'}</p>;
 }
 
 type History=Record<string,string[]>;

@@ -1,4 +1,5 @@
 import {useEffect, useLayoutEffect, useRef} from 'react';
+import {OrbitalDisplay} from './OrbitalDisplay';
 
 const log = [
   [0, 'Запуск принят. Подключаю орбитальную сеть'],
@@ -49,6 +50,7 @@ export function UltronTerminal({elapsed, finished, recoveryAvailable = false}: {
           <small>{elapsed >= 36000 ? 'ВНЕШНЕЕ УПРАВЛЕНИЕ' : 'СИСТЕМНЫЙ ТЕРМИНАЛ'}</small>
         </header>
         <h1 id="takeover-title">{arrival ? 'Альтрон' : 'Планетарная защита'}</h1>
+        {!arrival && <OrbitalDisplay syncing={elapsed < 22000} compromised={elapsed >= 25000} />}
         {(
           <div className="takeover-progress" style={{visibility: elapsed >= 32000 ? 'hidden' : 'visible'}} aria-hidden={elapsed >= 32000}>
             <span>{scanning ? 'Сканирование угроз' : 'Синхронизация спутников'}</span>

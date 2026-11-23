@@ -17,6 +17,13 @@ const hints = [
   'Цель — верхняя цепь P–D–L. Снизу карантин U и журнал A, последняя ячейка свободна. Не пытайтесь выстроить всю верхнюю цепь одним проходом.',
   'Со стартовой раскладки сдвиньте D из ячейки 5 в 6, затем L из 4 в 5. Теперь можно сдвинуть P из 1 в 4.',
 ];
+const modulePaths = {
+  P: 'M5 24h8l5-12 10 24 5-12h10M10 8v6m28-6v6M10 34v6m28-6v6',
+  A: 'M12 7h24v34H12zM18 15h12M18 23h12M18 31h8',
+  U: 'M8 8h10v10H8zM30 30h10v10H30zM18 13h16v11m-21-6v16h11M20 20l8 8m0-8-8 8',
+  L: 'm24 5 15 19-15 19L9 24zM17 24h14M24 17v14',
+  D: 'M5 24h12m14 0h12M17 13l14 11-14 11zM31 12v24',
+};
 const finale = [
   'CLEAN SLATE PROTOCOL · ARMED',
   'LOCAL SIGNAL · VERIFIED',
@@ -92,10 +99,10 @@ export function CleanSlate({mission}: {mission: number}) {
   return (
     <main className="clean-slate">
       <header><span>SURKOV INDUSTRIES</span><a href="/">В лабораторию</a></header>
-      <h1>Clean Slate / DUM-E</h1>
+      <h1>Clean Slate. Ручной запуск</h1>
       <section className="slate-brief" aria-labelledby="slate-goal">
         <h2 id="slate-goal">Восстановите локальную цепь запуска Clean Slate</h2>
-        <p>Дамми перемещает модули по вашим командам. Начните с журнала обслуживания: в нём записаны условия исправной сборки.</p>
+        <p>Сэр, дистанционный доступ скомпрометирован. Остаются ваши руки и манипулятор Дамми. Условия исправной сборки — в журнале обслуживания.</p>
         <details className="slate-journal">
           <summary>Прочитать условия сборки</summary>
           <h3>Акт 47-B / Аварийная реконфигурация шины</h3>
@@ -107,17 +114,17 @@ export function CleanSlate({mission}: {mission: number}) {
           </ol>
         </details>
       </section>
-      <div className="slate-layout" data-complete={state.complete} data-power={state.power}>
+      <div className="slate-layout" data-complete={state.complete} data-power={state.power} data-open={state.open}>
         <div key={motion?.id ?? 'idle'} className={motion ? 'reactor-visual slate-reactor slate-reactor-pulse' : 'reactor-visual slate-reactor'} aria-hidden="true" />
       {!panel && <button onClick={() => setPanel(true)}>Открыть панель Дамми</button>}
       {panel && (
         <section className="slate-panel" aria-labelledby="slate-panel-title">
-          <h2 id="slate-panel-title">Панель восстановления</h2>
+          <h2 id="slate-panel-title">Коммутационная шина</h2>
           <h3>Обслуживание</h3>
           <dl className="slate-equipment" aria-label="Состояние оборудования">
-            <div><dt>Предохранитель</dt><dd>{state.fuse ? 'Установлен' : 'Отсутствует'}</dd></div>
-            <div><dt>Питание</dt><dd>{state.power === 'MAIN' ? 'Основное · MAIN' : 'Резервное · BACKUP'}</dd></div>
-            <div><dt>Крышка панели</dt><dd>{state.open ? 'Открыта' : 'Закрыта'}</dd></div>
+            <div data-ready={state.fuse}><dt>Предохранитель</dt><dd>{state.fuse ? 'Установлен' : 'Отсутствует'}</dd></div>
+            <div data-ready={state.power === 'MAIN'}><dt>Питание</dt><dd>{state.power === 'MAIN' ? 'Основное · MAIN' : 'Резервное · BACKUP'}</dd></div>
+            <div data-ready={!state.open}><dt>Крышка панели</dt><dd>{state.open ? 'Открыта' : 'Закрыта'}</dd></div>
           </dl>
           <div className="slate-controls">
             {!state.fuse && <button disabled={state.complete} onClick={() => command('fuse')}>Установить предохранитель</button>}
@@ -138,12 +145,12 @@ export function CleanSlate({mission}: {mission: number}) {
                   '--slide-y': `${(Math.floor(source / 3) - Math.floor(index / 3)) * 100}%`,
                 } as CSSProperties : undefined;
                 return (
-                  <button key={index} className="slate-slot" data-empty={!module}
+                  <button key={index} className="slate-slot" data-empty={!module} data-module={module ?? 'empty'}
                     data-danger={index === 4 && message === quarantineWarning}
                     disabled={!module || !canMove} onClick={() => command(index)}>
                     <small>{index + 1}{index === 3 && ' · Карантин'}{index === 4 && ' · Диагностика'}</small>
                     <span key={sliding ? motion.id : module} className={sliding ? 'slate-slide' : undefined} style={style}>
-                      {module ? <><strong>{module}{module === 'D' && (state.left ? ' ←' : ' →')}</strong>{names[module]}</> : 'Свободно'}
+                      {module ? <><svg className="slate-module-glyph" viewBox="0 0 48 48" aria-hidden="true"><path d={modulePaths[module]} transform={module === 'D' && state.left ? 'rotate(180 24 24)' : undefined}/></svg><strong>{module}{module === 'D' && (state.left ? ' ←' : ' →')}</strong>{names[module]}</> : <span className="slate-empty">Свободная ячейка</span>}
                     </span>
                   </button>
                 );

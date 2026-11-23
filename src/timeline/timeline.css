@@ -30,3 +30,21 @@
 .tl-motion .tl-ending-content{animation:tl-verdict-reveal .65s cubic-bezier(.16,1,.3,1)}
 @keyframes tl-strange-ready{from{border-color:#d5bc83;background:#3d3324}to{border-color:#527078;background:#142b36}}
 @keyframes tl-verdict-reveal{from{clip-path:inset(0 0 18% 0);opacity:.45}to{clip-path:inset(0);opacity:1}}
+
+/* Лица связаны с реальным выбором персонажа; схема отмечает остальные развилки. */
+.timeline-lab .tl-option .tl-choice-art { display:flex; align-items:center; width:100%; min-height:84px; color:#8dcbd8; }
+.timeline-lab .tl-choice-art .tl-portrait { width:84px; height:84px; border-radius:12px; }
+.timeline-lab .tl-choice-art svg { width:96px; height:72px; margin:0; }
+.timeline-lab .tl-option[aria-pressed=true] .tl-choice-art { color:#234a57; }
+.timeline-lab .tl-option small { display:flex; align-items:center; gap:8px; padding-top:14px; border-top:1px solid #365c6a; width:100%; }
+.timeline-lab .tl-option[aria-pressed=true] small { border-color:#599ca8; }
+.timeline-lab .tl-option[aria-pressed=true] small::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+.timeline-lab .tl-story blockquote[data-speaker=АЛЬТРОН] { background:#251e24; }
+.timeline-lab .tl-story blockquote[data-speaker=ТОНИ] { background:#242a28; }
+.tl-motion .tl-selected-dialogue { animation:tl-response .4s cubic-bezier(.16,1,.3,1); }
+@keyframes tl-response { from { clip-path:inset(0 0 100% 0); } to { clip-path:inset(0); } }
+@media(max-width:520px) {
+  .timeline-lab .tl-option .tl-choice-art { min-height:64px; }
+  .timeline-lab .tl-choice-art .tl-portrait { width:64px; height:64px; }
+}
+@media(prefers-reduced-motion:reduce) { .tl-motion .tl-selected-dialogue { animation:none; } }

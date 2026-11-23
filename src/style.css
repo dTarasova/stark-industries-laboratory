@@ -452,6 +452,22 @@ main:not(:has(.reactor-visual))::before {
 }
 
 /* Handheld operator panel */
+.orbital-display { --orbit-signal:#a8f6ff; color:var(--orbit-signal); max-width:640px; margin:12px auto 24px; }
+.orbital-display svg { display:block; width:100%; max-height:300px; stroke:currentColor; stroke-width:1.25; }
+.orbital-display .orbit-track { stroke-dasharray:4 8; opacity:.6; }
+.orbital-display .orbit-track-secondary { opacity:.25; }
+.orbital-globe { fill:#0c2732; }
+.orbital-globe path,.orbital-globe ellipse { opacity:.45; }
+.orbital-satellite { fill:#163e4a; stroke-width:1.75; }
+.orbital-uplink { stroke-dasharray:3 4; }
+.orbital-display[data-compromised=true] { --orbit-signal:#ff8d83; }
+.orbital-display[data-syncing=true] .orbital-uplink { animation:orbital-uplink 1s linear infinite; }
+.takeover-terminal:not([data-arrival=true]) .orbital-display { margin-block:0 12px; }
+.takeover-terminal:not([data-arrival=true]) .orbital-display svg { max-height:180px; }
+@keyframes orbital-uplink { to { stroke-dashoffset:-14; } }
+@media(max-height:700px) { .takeover-terminal:not([data-arrival=true]) .orbital-display svg { max-height:110px; } }
+@media(prefers-reduced-motion:reduce) { .orbital-display[data-syncing=true] .orbital-uplink { animation:none; } }
+
 .control-panel{max-width:760px;padding:24px 16px max(24px,env(safe-area-inset-bottom))}
 .control-panel h1{font-size:clamp(26px,5vw,36px);margin:24px 0 20px}
 .control-panel h2{font-size:22px;margin:0 0 12px}

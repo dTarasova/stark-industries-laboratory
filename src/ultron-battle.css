@@ -3,7 +3,7 @@ body:has(.ultron-battle) {
 }
 
 main.ultron-battle:not(:has(.reactor-visual))::before {
-  content: none;
+  content: '';
 }
 
 .ultron-battle {
@@ -64,4 +64,18 @@ main.ultron-battle:not(:has(.reactor-visual))::before {
 
 @media (prefers-reduced-motion: reduce) {
   .ultron-battle-eyes { transition: none; }
+}
+
+.ultron-battle { max-width:1600px; padding:40px clamp(20px,5vw,80px) 80px; }
+.ultron-battle-copy { position:relative; max-width:70ch; }
+.ultron-battle-copy h1 { color:#ffb4a8; }
+.ultron-battle[data-won=true] .ultron-battle-copy h1 { color:#a8f6ff; }
+.ultron-battle-copy h2 { font-family:'Exo 2',sans-serif; font-weight:500; }
+.ultron-battle-copy p { font-size:17px; line-height:1.75; }
+.ultron-battle .ultron-battle-mask { left:auto; right:-6vw; top:50%; transform:translateY(-50%); width:min(64vw,900px); opacity:.25; }
+.ultron-battle .ultron-battle-threat { margin-block:28px; padding-block:16px; border-block:1px solid #854d49; font-size:14px; }
+.ultron-battle .ultron-battle-action { margin-top:16px; }
+@media(max-width:900px) {
+  .ultron-battle .ultron-battle-mask { width:90vw; right:5vw; opacity:.14; }
+  .ultron-battle-copy { max-width:none; }
 }

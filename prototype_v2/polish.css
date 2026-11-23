@@ -22,6 +22,11 @@ button:focus-visible { outline-color: #ffcf91; }
 .step em { font-size: 11px; color: #aec9d2; }
 main { gap: 24px; }
 .scene-wrap { border-color: #426675; box-shadow: none; border-radius: 12px; }
+.scene-wrap { background:#06121c; }
+body[data-stage='2'] .scene-wrap { border-color:#77c7dd; }
+body[data-stage='3'] .scene-wrap { border-color:#d5ac69; }
+body[data-stage='4'] .scene-wrap { border-color:#a7e6d5; }
+.step.done em { background:#a8f6ff; color:#071b24; border-color:#a8f6ff; }
 .hud .title { font-family: 'Exo 2', sans-serif; font-weight: 500; font-size: 21px; }
 .hud { max-width: 48%; }
 .hud .meta { display: none; }
@@ -42,6 +47,9 @@ main { gap: 24px; }
 .chips { gap: 6px; }
 .chips button { min-width: 0; min-height: 44px; font-variant-numeric: tabular-nums; }
 .status { padding: 16px; font-size: 14px; line-height: 1.7; }
+.panel:has(#status) { border:0; border-top:1px solid #365c6a; background:transparent; padding-inline:0; }
+.panel:has(#status) h3 { font-family:'Exo 2',sans-serif; color:#a8f6ff; font-size:17px; font-weight:500; margin-bottom:16px; letter-spacing:0; }
+.panel:has(#status) .status { border:0; border-radius:0; background:#102b36; }
 .footnote { color: #aec9d2; font-size: 12px; }
 details summary { min-height: 44px; display: flex; align-items: center; font-size: 14px; }
 details .tag { font-size: 12px; color: #aec9d2; letter-spacing: .04em; }

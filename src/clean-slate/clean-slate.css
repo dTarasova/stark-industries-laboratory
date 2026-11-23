@@ -141,3 +141,27 @@
 @media(max-width:1100px) { .slate-layout { grid-template-columns:minmax(320px,1.2fr) minmax(250px,1fr); } .slate-guide { grid-column:1 / -1; grid-row:2; position:static; max-height:440px; border-left:0; border-top:1px solid #456c7a; padding:24px 0; } }
 @media(max-width:700px) { .slate-layout { display:flex; flex-direction:column; gap:24px; } .slate-layout > * { width:100%; } .slate-stage { position:relative; top:0; min-height:360px; order:0; } .slate-layout > .slate-reactor { position:absolute; z-index:-1; pointer-events:none; width:min(100%, 1100px); max-width:none; left:50%; top:0; margin-left:calc(min(100%, 1100px) / -2); opacity:.2; } .slate-stage .slate-robot { padding-top:50px; border:0; } .slate-stage .robot-arm { height:230px; } .slate-guide { max-height:420px; } }
 @media(prefers-reduced-motion:reduce) { .slate-reactor-pulse { animation:none; } }
+
+/* Физические модули шины: символ не подсказывает расположение, состояние берётся из сборки. */
+.clean-slate .slate-layout { --bus-signal:#a8f6ff; }
+.clean-slate .slate-layout[data-power=BACKUP] { --bus-signal:#ffcf91; }
+.clean-slate .slate-layout .slate-grid { gap:10px; padding:12px; background:#030d13; border:1px solid #365c6a; }
+.clean-slate .slate-layout .slate-slot { position:relative; min-height:190px; padding:14px 10px; border:1px solid #4a6d78; border-radius:6px; background:#102b36; }
+.clean-slate .slate-slot > span { display:grid; gap:8px; align-content:center; justify-items:start; }
+.clean-slate .slate-slot strong { font-family:'Exo 2',sans-serif; font-size:25px; color:var(--bus-signal); }
+.clean-slate .slate-module-glyph { display:block; width:40px; height:40px; fill:none; stroke:var(--bus-signal); stroke-width:1.5; }
+.clean-slate .slate-slot[data-module=U] .slate-module-glyph,.clean-slate .slate-slot[data-module=U] strong { color:#ffb4a8; stroke:#ffb4a8; }
+.clean-slate .slate-slot::after { content:''; position:absolute; inset:auto 10px 5px; height:3px; border-block:1px solid #4a6d78; pointer-events:none; }
+.clean-slate .slate-slot[data-empty=true] { background:#030d13; border-style:dashed; }
+.clean-slate .slate-empty { color:#aec9d2; font-size:12px; line-height:1.5; }
+.clean-slate .slate-layout[data-open=true] .slate-grid { border-color:var(--bus-signal); }
+.clean-slate .slate-equipment > div { padding-block:10px; border-bottom:1px solid #365c6a; }
+.clean-slate .slate-equipment dd::before { content:''; display:inline-block; width:6px; height:6px; margin:0 8px 2px 0; border-radius:50%; background:#ffcf91; }
+.clean-slate .slate-equipment [data-ready=true] dd::before { background:#a7e6d5; }
+.clean-slate .slate-layout[data-complete=true] .slate-grid { border-color:#a7e6d5; }
+@media(max-width:700px) {
+  .clean-slate .slate-layout .slate-grid { gap:6px; padding:6px; }
+  .clean-slate .slate-layout .slate-slot { min-height:190px; padding:10px 6px; font-size:12px; }
+  .clean-slate .slate-slot small { font-size:11px; }
+  .clean-slate .slate-module-glyph { width:32px; height:32px; }
+}
