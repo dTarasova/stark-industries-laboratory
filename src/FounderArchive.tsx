@@ -27,7 +27,7 @@ const projects = [
 
 export function FounderArchive() {
   return (
-    <main>
+    <main className="archive-page">
       <header>
         <span>SURKOV INDUSTRIES</span>
         <a href="/">В лабораторию</a>

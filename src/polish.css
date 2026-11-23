@@ -1,0 +1,310 @@
+/* Общая отделка лаборатории. Сюжетные цвета и анимации принадлежат своим сценам. */
+@font-face {
+  font-family: 'Exo 2';
+  src: url('/fonts/Exo2-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --lab-ink: #e3f2f5;
+  --lab-muted: #aec9d2;
+  --lab-line: #365c6a;
+  --lab-signal: #a8f6ff;
+  --lab-amber: #ffcf91;
+  --lab-surface: #081c26;
+  background: #030d13;
+  color: var(--lab-ink);
+  scrollbar-color: #548598 #06141c;
+  accent-color: var(--lab-signal);
+}
+
+::selection { background: #a8f6ff; color: #05121b; }
+:where(input, textarea) { caret-color: var(--lab-signal); }
+:where(a) { text-underline-offset: .24em; text-decoration-thickness: 1px; }
+:where(h1, h2, h3) { text-wrap: balance; }
+:where(button, input, select, textarea) { max-width: 100%; }
+:where(button) { touch-action: manipulation; }
+:where(button, a, summary) { -webkit-tap-highlight-color: #a8f6ff26; }
+:where(button, summary) { transition: background-color 160ms, border-color 160ms, color 160ms; }
+:where(button:active:not(:disabled)) { filter: brightness(.88); }
+:focus-visible { outline: 2px solid var(--lab-amber); outline-offset: 4px; }
+:where(main:not(.control-panel)) h1,
+.founder-lab header > span,
+.lab-workspace h2,
+.tl-pilot-intro h2,
+.tl-scene-heading h2 {
+  font-family: 'Exo 2', system-ui, sans-serif;
+  font-weight: 500;
+}
+
+/* Вход: ядро остаётся открытым, команда располагается ниже его центра. */
+.founder-lab {
+  max-width: 1600px;
+  padding: 0 clamp(16px, 3vw, 48px) 48px;
+  font-size: 15px;
+  background: radial-gradient(ellipse at 50% 30%, #12313b66, transparent 65%), #030d13;
+}
+.founder-lab header {
+  padding: 20px 0;
+  min-height: 108px;
+  border-color: var(--lab-line);
+  background: transparent;
+  gap: 24px;
+}
+.founder-lab header > span { font-size: 19px; font-weight: 600; letter-spacing: .16em; }
+.top-badges { gap: 12px; }
+.top-badges li { padding: 10px 12px; border-color: var(--lab-line); font-size: 11px; }
+.top-badges li > span { margin-top: 8px; color: var(--lab-muted); font-size: 12px; }
+.top-badges li[data-active=true] { background: #332a1d; color: var(--lab-amber); border-color: #d5ac69; }
+.founder-lab:not([data-scan=done]) .scan-stage {
+  min-height: max(540px, calc(100svh - 108px));
+  justify-content: flex-start;
+  align-items: flex-end;
+  padding: 0 0 clamp(32px, 6vh, 72px);
+  text-align: left;
+}
+.founder-lab:not([data-scan=done]) { padding-bottom: 0; }
+.founder-lab:not([data-scan=done]) .scan-stage > div:first-child {
+  padding: 24px 28px;
+  border: 0;
+  border-top: 1px solid #6198a4;
+  background: #06141cf2;
+}
+.founder-lab:not([data-scan=done]) .scan-stage h1 {
+  font-size: clamp(32px, 4.4vw, 64px);
+  line-height: 1.06;
+  margin-bottom: 20px;
+  letter-spacing: -.025em;
+}
+.founder-lab:not([data-scan=done]) .scan-stage .reactor-visual {
+  width: min(76vw, 76svh);
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: .9;
+}
+.founder-lab .scan-stage button {
+  background: var(--lab-signal);
+  border-color: var(--lab-signal);
+  color: #071b24;
+  font-size: 15px;
+  font-weight: 650;
+  min-height: 48px;
+  padding-inline: 24px;
+  margin: 0 0 12px;
+}
+.founder-lab .scan-stage button:hover:not(:disabled) { background: #d6fbff; color: #071b24; }
+.founder-lab[data-scan=done] .scan-stage { min-height: 110px; }
+.founder-lab[data-scan=done] .scan-stage h1 { font-size: clamp(30px, 3vw, 42px); letter-spacing: -.02em; }
+.founder-lab[data-scan=done] .scan-stage .reactor-visual { pointer-events: none; }
+
+/* Рабочие поверхности: миссия, оборудование и помощник различимы с первого взгляда. */
+.lab-workspace {
+  grid-template-columns: minmax(230px, 1fr) minmax(380px, 1.8fr) minmax(190px, .75fr);
+  gap: 28px;
+}
+.lab-workspace > * { min-width: 0; }
+.founder-lab section { padding: 24px; border-color: var(--lab-line); background: #081c26ed; }
+.lab-workspace h2 { font-size: 22px; line-height: 1.2; margin-bottom: 20px; letter-spacing: 0; }
+.lab-workspace h3 { margin: 28px 0 8px; font-size: 14px; color: var(--lab-muted); }
+.system-nodes { gap: 0; margin: 0 0 20px; }
+.system-nodes li {
+  min-width: 0;
+  padding: 18px 12px;
+  border: 0;
+  border-top: 1px solid var(--lab-line);
+  background: transparent;
+  gap: 8px 10px;
+}
+.system-nodes strong, .system-nodes a { font-size: 14px; line-height: 1.4; }
+.system-nodes li > span { color: var(--lab-muted); line-height: 1.5; }
+.system-nodes a { display: inline-block; padding-bottom: 4px; }
+.founder-lab button { font-size: 14px; line-height: 1.4; }
+.mission-column section { padding: 24px 0; border: 0; border-top: 1px solid #d5ac69; background: transparent; }
+.mission-column h2 { font-size: clamp(24px, 2.4vw, 32px); margin: 24px 0 12px; }
+.mission-column p { color: #c1dce5; }
+.mission-column .connection-status { font-size: 12px; color: var(--lab-muted); margin: 0; }
+.connection-status::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 0; border-radius: 50%; background: #ffb4a8; }
+.connection-status[data-online=true]::before { background: #a7e6d5; }
+.lab-workspace .dum-e { border-color: var(--lab-line); padding: 24px 0 0; }
+.lab-workspace .dum-e h2 { font-family: 'Exo 2', sans-serif; color: var(--lab-amber); font-size: 16px; }
+.lab-workspace .dum-e p { font-size: 14px; line-height: 1.6; }
+.lab-workspace > section[aria-labelledby=founder-achievements] { padding: 28px 0 0; border-color: var(--lab-line); }
+#achievement-help { color: var(--lab-muted); font-size: 14px; margin-bottom: 24px; }
+.achievement-list { gap: 20px; padding: 4px 2px 20px; scroll-padding-inline: 2px; }
+.founder-lab .achievement-list li { padding: 24px; background: #081c26; border-color: var(--lab-line); flex-basis: min(340px, 82vw); }
+.achievement-list li strong { font-family: 'Exo 2', sans-serif; font-size: 20px; font-weight: 500; min-height: 2.6em; }
+.achievement-list .project-illustration { height: 112px; background: transparent; margin-bottom: 24px; }
+.achievement-list p { line-height: 1.7; }
+.jarvis-message { border: 0; border-top: 1px solid #7bb6c4; background: #102d38; padding: 18px 24px; box-shadow: 0 16px 48px #0009; }
+.jarvis-message p { font-size: 14px; line-height: 1.6; }
+.message-history summary { padding: 12px 0; min-height: 44px; font-size: 12px; }
+.message-history ol, .message-history-empty { top: 100%; right: 0; margin: 0; max-width: calc(100vw - 32px); }
+.message-history-empty { position: absolute; padding: 24px; background: #0c202b; border: 1px solid var(--lab-line); width: 300px; letter-spacing: 0; }
+
+/* Архив и шлюз EDITH используют ту же материальность, без новых сюжетных данных. */
+.archive-page { max-width: 1120px; padding: 32px clamp(20px, 4vw, 64px) 64px; }
+.archive-page header, .development-entry header { align-items: center; font-size: 13px; border-color: var(--lab-line); }
+.archive-page header a, .development-entry header a { display: inline-flex; align-items: center; min-height: 44px; }
+.archive-page h1 { max-width: 20ch; line-height: 1.1; margin-block: 56px 36px; }
+.archive-page > .dum-e, .development-entry > .dum-e {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 20px;
+  width: 100%;
+  padding: 20px 0;
+  margin-bottom: 24px;
+  border-color: var(--lab-line);
+}
+.archive-page > .dum-e .robot-arm, .development-entry > .dum-e .robot-arm { grid-column: 1; grid-row: 1 / span 3; height: 100px; }
+.archive-page > .dum-e h2, .development-entry > .dum-e h2 { grid-column: 2; font-size: 14px; color: var(--lab-amber); }
+.archive-page > .dum-e button, .development-entry > .dum-e button { grid-column: 2; justify-self: start; margin: 0; border: 1px solid #548598; background: #133541; color: var(--lab-ink); font-size: 14px; }
+.archive-page > .dum-e p, .development-entry > .dum-e p { grid-column: 2; min-height: 0; margin: 0; font-size: 14px; }
+.archive-page > .dum-e p:empty, .development-entry > .dum-e p:empty { display: none; }
+.archive-page .archive-card { border: 0; border-block: 1px solid var(--lab-line); margin: 0 0 16px; background: #081c26e6; }
+.archive-card summary { padding: 24px; line-height: 1.5; }
+.archive-card summary:hover { background: #102d38; }
+.archive-card summary strong { font-family: 'Exo 2', sans-serif; font-size: 21px; font-weight: 500; }
+.archive-card[open] summary { border-bottom: 1px solid var(--lab-line); }
+.archive-dossier { padding: 24px; max-width: 75ch; }
+.archive-status { font-size: 14px; }
+.development-entry { max-width: 1100px; min-height: 100svh; }
+.development-access { margin: clamp(40px, 8vh, 100px) auto 48px; padding: 32px 0; }
+.development-access h2 { font-family: 'Exo 2', sans-serif; font-size: clamp(26px, 4vw, 38px); font-weight: 500; margin-bottom: 28px; }
+.development-access input { background: #081c26; border: 1px solid #548598; border-radius: 4px; color: var(--lab-ink); }
+.development-access button { background: var(--lab-signal); border: 1px solid var(--lab-signal); border-radius: 4px; color: #071b24; font-weight: 650; }
+
+/* Главы: свободнее диалоги, чётче выбор, спокойнее постоянная телеметрия. */
+.timeline-lab { background: transparent; }
+.timeline-lab header { gap: 20px; border-color: var(--lab-line); font-size: 13px; }
+.timeline-lab h1 { font-size: clamp(36px, 4.8vw, 68px); line-height: 1.08; }
+.tl-chapters h1 { margin: 32px 0 24px; }
+.tl-chapters > .reactor-visual { opacity: .09; }
+.tl-lineage { margin: 20px 0; }
+.tl-lineage li { font-size: 12px; line-height: 1.5; padding-top: 10px; }
+.timeline-lab summary { min-height: 44px; padding-block: 10px; line-height: 1.5; }
+.timeline-lab details { border-color: var(--lab-line); }
+.timeline-lab fieldset { min-width: 0; padding: 20px; border-color: var(--lab-line); }
+.timeline-lab select { font-size: 16px; }
+.tl-pilot-intro { margin: clamp(36px, 6vh, 72px) auto 28px; }
+.tl-pilot-intro h2, .tl-scene-heading h2 { font-size: clamp(24px, 3vw, 36px); line-height: 1.2; margin: 0 0 16px; }
+.tl-pilot-intro .tl-prose { font-size: 18px; color: #c1dce5; }
+.tl-story { max-width: 920px; margin-block: 24px; }
+.tl-story blockquote { padding: 16px 20px; margin: 10px 0; border-radius: 12px; background: #0c2430; gap: 20px; }
+.tl-story blockquote p { font-size: 16px; line-height: 1.65; }
+.tl-speaker { min-width: 0; }
+.tl-story blockquote strong { font-size: 12px; letter-spacing: .04em; }
+.tl-narration { margin-block: 16px; font-size: 16px; line-height: 1.7; }
+.tl-pilot-options { margin-block: 32px; gap: 16px; }
+.tl-pilot-options .tl-option { padding: 24px 18px; gap: 14px; background: #0b202b; border-color: #426675; text-align: left; align-items: flex-start; }
+.tl-option strong { font-family: 'Exo 2', sans-serif; font-size: 21px; font-weight: 500; }
+.tl-option span { color: #c1dce5; font-size: 15px; line-height: 1.6; }
+.tl-option[aria-pressed=true] span, .tl-option[aria-pressed=true] small { color: #17313a; }
+.timeline-lab .tl-option[aria-pressed=true] { border-color: var(--lab-signal); background: var(--lab-signal); }
+.timeline-lab button[aria-pressed=true]:hover:not(:disabled) { background: #d6fbff; color: #10191e; }
+.tl-option svg { width: 36px; height: 36px; }
+.tl-scene-actions { gap: 12px; flex-wrap: wrap; }
+.tl-operation-metrics { border: 0; border-top: 1px solid #426675; background: #081c26; padding: 16px 24px max(16px, env(safe-area-inset-bottom)); gap: 12px 32px; font-size: 14px; }
+.tl-city { margin-top: 48px; }
+.tl-city h3 { font-family: 'Exo 2', sans-serif; font-weight: 500; font-size: 21px; margin-bottom: 12px; }
+.tl-city li { padding-top: 20px; }
+.tl-review-item { padding-block: 24px; }
+.tl-chapters .tl-ending { padding-block: 48px; }
+
+/* Пульт остаётся практичным, опасные команды не конкурируют с текущей задачей. */
+.control-panel { padding-top: 24px; }
+.control-panel h1 { font-family: 'Exo 2', sans-serif; font-size: clamp(30px, 5vw, 40px); line-height: 1.15; }
+.control-panel header { align-items: center; line-height: 1.5; border-color: var(--lab-line); }
+.control-panel .control-state { padding-block: 12px 20px; border-bottom: 1px solid var(--lab-line); }
+.control-updated { font-size: 13px; font-variant-numeric: tabular-nums; }
+.control-panel section, .control-panel form { background: #081c26; border-color: var(--lab-line); padding: 24px; }
+.control-panel button { border: 1px solid #548598; border-radius: 4px; background: #133541; color: var(--lab-ink); line-height: 1.5; }
+.control-panel button:hover:not(:disabled) { background: #245565; border-color: var(--lab-signal); }
+.control-panel button[aria-pressed=true] { background: #332a1d; color: var(--lab-amber); border-color: #d5ac69; }
+.control-panel section:has(h2 + p + button) > button { background: #133541; color: var(--lab-ink); border-color: #548598; }
+.control-panel section > button[aria-pressed=false] { background: #133541; color: var(--lab-ink); border-color: #548598; }
+.control-panel section > button[aria-pressed=true] { background: #332a1d; color: var(--lab-amber); border-color: #d5ac69; }
+.control-panel form > button { background: var(--lab-signal); color: #071b24; font-weight: 650; }
+.control-panel form > button:hover:not(:disabled) { background: #d6fbff; color: #071b24; }
+.control-panel details[open] { border-color: #d5ac69; }
+
+/* Финальные сцены: типографика не конкурирует с персонажем и механизмом. */
+.clean-slate { max-width: 1600px; overflow-x: clip; }
+.clean-slate h1 { font-weight: 500; }
+.clean-slate .slate-brief { border: 0; background: transparent; padding: 0; margin-block: 0 32px; }
+.clean-slate .slate-slot { transition: background-color 160ms, border-color 160ms; }
+.clean-slate .slate-slot:hover:not(:disabled) { background: #245565; border-color: #aff5ff; }
+.clean-slate .slate-slot[data-danger=true]:hover { background: #57232e; border-color: #ff7777; }
+.ultron-battle { min-height: 100svh; padding-top: 40px; }
+.ultron-battle h1 { font-size: clamp(38px, 6vw, 72px); line-height: 1.05; letter-spacing: -.025em; }
+.ultron-battle blockquote { padding: 24px 0; border: 0; border-block: 1px solid #854d49; font-size: 19px; line-height: 1.7; }
+.ultron-battle-action { min-height: 48px; text-decoration: none; line-height: 1.5; }
+.victory-finale { max-width: 1600px; width: 100%; }
+.victory-content { border: 0; background: transparent; padding: 0; }
+.victory-content h1 { letter-spacing: -.025em; }
+.victory-action { min-height: 52px; line-height: 1.5; }
+
+@keyframes lab-unfold {
+  from { clip-path: inset(0 0 85% 0); }
+  to { clip-path: inset(0); }
+}
+.founder-lab[data-scan=done] .lab-workspace { animation: lab-unfold 700ms cubic-bezier(.16, 1, .3, 1); }
+
+@media (max-width: 1100px) {
+  .founder-lab header { gap: 16px; }
+  .top-badges { order: 3; flex-basis: 100%; justify-content: flex-start; }
+  .top-badges li { flex: 1; }
+  .message-history { margin-left: auto; }
+  .lab-workspace { grid-template-columns: minmax(220px, 1fr) minmax(0, 1.65fr); gap: 24px; }
+  .lab-workspace > section:first-child { grid-row: 1 / span 2; }
+  .lab-workspace .dum-e { grid-column: 1; grid-row: 2; }
+  .lab-workspace > section[aria-labelledby=founder-achievements] { grid-row: 3; }
+}
+@media (max-width: 680px) {
+  .founder-lab { padding-bottom: 32px; }
+  .founder-lab header { padding-block: 20px 12px; }
+  .founder-lab header > span { font-size: 16px; max-width: 145px; }
+  .top-badges { gap: 8px 16px; }
+  .top-badges li { padding: 10px 0; }
+  .top-badges li > span { font-size: 11px; margin-top: 4px; }
+  .founder-lab:not([data-scan=done]) .scan-stage { min-height: max(480px, calc(100svh - 205px)); padding-bottom: 24px; }
+  .founder-lab:not([data-scan=done]) .scan-stage > div:first-child { padding: 20px; width: 100%; }
+  .founder-lab:not([data-scan=done]) .scan-stage .reactor-visual { width: min(76vw, 380px); top: 35%; }
+  .founder-lab[data-scan=done] .scan-stage { min-height: 100px; }
+  .lab-workspace { display: flex; gap: 24px; }
+  .lab-workspace .mission-column { order: -1; }
+  .mission-column section { margin: 0; padding: 24px 0 0; }
+  .mission-column h2 { margin-top: 20px; }
+  .founder-lab section { padding: 20px; }
+  .founder-lab .mission-column section { padding-inline: 0; background: transparent; }
+  .founder-lab .lab-workspace > section[aria-labelledby=founder-achievements] { padding-inline: 0; }
+  .lab-workspace h2 { font-size: 24px; }
+  .system-nodes li { padding: 16px 8px; }
+  .lab-workspace .dum-e { padding-top: 20px; }
+  .lab-workspace .dum-e .robot-arm { height: 180px; }
+  .jarvis-message { bottom: max(12px, env(safe-area-inset-bottom)); padding: 16px 20px; }
+  .archive-page h1 { margin-top: 36px; }
+  .archive-card summary, .archive-dossier { padding: 20px; }
+  .timeline-lab header { gap: 12px; }
+  .tl-chapters h1 { margin-block: 28px 20px; }
+  .tl-lineage { overflow-x: auto; padding-bottom: 12px; }
+  .tl-lineage ol { min-width: 440px; gap: 12px; }
+  .tl-lineage li { font-size: 11px; }
+  .tl-story blockquote { padding: 16px; gap: 12px; }
+  .tl-story blockquote p { line-height: 1.6; }
+  .tl-pilot-options .tl-option { padding: 20px; }
+  .tl-operation-metrics { font-size: 12px; gap: 8px 16px; }
+  .tl-scene-actions button { flex: 1; margin: 0; }
+  .control-panel section, .control-panel form { padding: 20px; }
+}
+@media (max-width: 400px) {
+  .system-nodes { grid-template-columns: 1fr; }
+  .message-history summary { max-width: 140px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .founder-lab[data-scan=done] .lab-workspace { animation: none; }
+  :where(button, a, summary), .clean-slate .slate-slot { transition: none; }
+}

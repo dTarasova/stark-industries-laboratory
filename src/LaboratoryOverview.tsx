@@ -66,7 +66,7 @@ export function LaboratoryOverview({stage, elementDiscovered, badges, children, 
         {scan === 'done' && (
           <details className="message-history" ref={historyPanel} onToggle={event => { if (event.currentTarget.open) setUnread(0); }}>
             <summary>История JARVIS{unread > 0 ? ' · новых: ' + unread : ''}</summary>
-            <ol>{history.map((text, index) => <li key={index}>{text}</li>)}</ol>
+            {history.length > 0 ? <ol>{history.map((text, index) => <li key={index}>{text}</li>)}</ol> : <p className="message-history-empty">Сообщений пока нет.</p>}
           </details>
         )}
       </header>

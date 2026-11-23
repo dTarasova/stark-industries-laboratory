@@ -132,8 +132,8 @@ export function App({experiment, allowOfflineExperiment = false}: {
  }, [recovery, control]);
  const achievements = mission && missionAchievements(mission);
  const missionSummary = (
-   <section>
-     <p role="status">{online ? 'Связь с лабораторией установлена' : 'Нет связи с лабораторией'}</p>
+   <section className="mission-summary">
+     <p className="connection-status" data-online={online} role="status">{online ? 'Связь с лабораторией установлена' : 'Нет связи с лабораторией'}</p>
      <h2>{mission?.stages[mission.stage] ?? 'Получаем состояние…'}</h2>
      <p>{mission?.stage === 1 && mission.edithUnlocked
        ? 'Откройте «Текущую разработку», чтобы исследовать новый элемент.'

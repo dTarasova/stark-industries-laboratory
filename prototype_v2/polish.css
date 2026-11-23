@@ -1,0 +1,63 @@
+@font-face {
+  font-family: 'Exo 2';
+  src: url('/fonts/Exo2-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root { --bg: #030d13; --surface: #081c26; --surface2: #102d38; --border: #365c6a; --text: #e3f2f5; --muted: #aec9d2; --teal: #a8f6ff; }
+body { scrollbar-color: #548598 #06141c; }
+html, body { font-family: 'Exo 2', system-ui, sans-serif; }
+::selection { background: #a8f6ff; color: #05121b; }
+header { padding-block: 28px 20px; align-items: center; }
+h1, h2, h3 { font-family: 'Exo 2', system-ui, sans-serif; font-weight: 500; text-wrap: balance; }
+h1 { font-size: clamp(26px, 3vw, 40px); letter-spacing: -.02em; margin-block: 0 12px; }
+.eyebrow { display: none; }
+.subtitle { font-size: 14px; line-height: 1.6; }
+button { min-height: 44px; touch-action: manipulation; transition: background-color 160ms, border-color 160ms; }
+button:active:not(:disabled) { filter: brightness(.88); }
+button:focus-visible { outline-color: #ffcf91; }
+.reset { color: #aec9d2; font-size: 13px; white-space: normal; }
+.step { padding: 14px 16px; border-radius: 4px; color: #aec9d2; background: #081c26; font-size: 13px; line-height: 1.5; }
+.step.active { border-color: #86c8d5; background: #143340; }
+.step em { font-size: 11px; color: #aec9d2; }
+main { gap: 24px; }
+.scene-wrap { border-color: #426675; box-shadow: none; border-radius: 12px; }
+.hud .title { font-family: 'Exo 2', sans-serif; font-weight: 500; font-size: 21px; }
+.hud { max-width: 48%; }
+.hud .meta { display: none; }
+.scene-actions button { font-size: 12px; background: #102d38; border-color: #548598; backdrop-filter: none; }
+.scene-actions { max-width: 48%; }
+.scene-footer { font-size: 12px; line-height: 1.6; }
+.panel { border-color: #365c6a; background: #081c26; padding: 24px; }
+.panel h2 { font-size: 24px; line-height: 1.2; margin-bottom: 18px; }
+.panel p, .panel .condition { font-size: 14px; line-height: 1.7; }
+.panel > p[style] { font-size: 13px !important; color: #aec9d2 !important; }
+.path.main, .path.reserve { border-left-width: 1px; }
+.path.main { border-color: #55c9f6; }
+.path.reserve { border-color: #efb35d; }
+.path, .route-legend { font-size: 13px; }
+.chip.off { color: #a4bbcb; }
+.primary { min-height: 48px; background: #a8f6ff; color: #071b24; font-size: 15px; }
+.primary:hover:not(:disabled) { background: #d6fbff; color: #071b24; }
+.chips { gap: 6px; }
+.chips button { min-width: 0; min-height: 44px; font-variant-numeric: tabular-nums; }
+.status { padding: 16px; font-size: 14px; line-height: 1.7; }
+.footnote { color: #aec9d2; font-size: 12px; }
+details summary { min-height: 44px; display: flex; align-items: center; font-size: 14px; }
+details .tag { font-size: 12px; color: #aec9d2; letter-spacing: .04em; }
+details p { font-size: 14px !important; }
+@media (max-width: 620px) {
+  header { align-items: flex-start; gap: 12px; }
+  h1 { font-size: 26px; }
+  .subtitle { font-size: 12px; }
+  .steps { grid-template-columns: 1fr; gap: 6px; }
+  .step { padding: 10px 12px; font-size: 12px; }
+  .step em { display: inline; }
+  .scene-actions { position: relative; top: auto; right: auto; max-width: none; padding: 10px; justify-content: flex-start; background: #081c26; }
+  .scene-actions button { font-size: 12px; padding: 8px 10px; }
+  .hud { max-width: 85%; }
+  .hud .title { font-size: 17px; }
+  .chips { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .panel { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
